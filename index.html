@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blufox Monday Ops Completion Checklist</title>
+<style>
+  :root {
+    --bg: #000;
+    --fg: #ffffff;
+    --muted: #b8b8b8;
+    --accent: #ff5a1f;
+    --border: #2a2a2a;
+    --field-bg: #111111;
+    --field-bg-hover: #181818;
+    --card-bg: rgba(255, 255, 255, 0.018);
+    --success: #22c55e;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header img {
+    max-width: 100%;
+    height: auto;
+    max-height: 220px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  h1 { font-size: 26px; margin: 8px 0 12px; font-weight: 700; }
+  .header p { color: var(--muted); margin: 0 auto; max-width: 640px; }
+
+  /* --- Cards: one per topic --- */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .field { margin-bottom: 18px; }
+  .card .field:last-child { margin-bottom: 0; }
+  .field-row { display: flex; gap: 16px; }
+  .field-row .field { flex: 1; }
+
+  label.q {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 15px;
+    color: var(--fg);
+  }
+  label.q .req { color: var(--accent); margin-left: 4px; }
+  label.q .optional-tag {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+
+  input[type="text"], input[type="email"], input[type="date"], select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--field-bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b8b8b8' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--field-bg-hover);
+  }
+  input[readonly] {
+    background: #080808;
+    color: var(--muted);
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  .yesno {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .yesno label {
+    cursor: pointer;
+    padding: 12px;
+    background: var(--field-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    margin: 0;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .yesno input { display: none; }
+  .yesno label:hover { background: var(--field-bg-hover); }
+  .yesno label.checked {
+    background: rgba(255, 90, 31, 0.18);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .resource-link {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .resource-link a {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .resource-link::before {
+    content: "📋 How-to: ";
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .conditional {
+    margin-top: 10px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid var(--danger);
+    border-radius: 6px;
+    display: none;
+    font-size: 14px;
+    color: var(--fg);
+  }
+  .conditional.show { display: block; }
+  .conditional.info {
+    background: rgba(255, 255, 255, 0.04);
+    border-left-color: var(--accent);
+  }
+  .conditional a {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: 600;
+  }
+
+  /* --- Photo uploads --- */
+  .photo-helper {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 12px 0 6px;
+  }
+  .photo-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .photo-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .photo-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+  @media (min-width: 600px) {
+    .photo-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  }
+  .photo-slot { display: flex; flex-direction: column; }
+  .photo-slot .slot-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .file-drop {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--field-bg);
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .file-drop:hover, .file-drop.drag {
+    border-color: var(--accent);
+    background: var(--field-bg-hover);
+  }
+  .file-drop input[type="file"] { display: none; }
+  .file-drop p { margin: 0; font-weight: 600; font-size: 13px; }
+  .file-drop small { color: var(--muted); font-size: 11px; }
+  .file-preview {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .file-preview img {
+    max-width: 100%;
+    max-height: 160px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+  }
+  .photo-slot.solo .file-drop { padding: 28px 16px; min-height: 120px; }
+  .photo-slot.solo .file-drop p { font-size: 14px; }
+
+  button.submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.05s;
+    margin-top: 12px;
+  }
+  button.submit:hover { opacity: 0.92; }
+  button.submit:active { transform: translateY(1px); }
+  button.submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    display: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .status.show { display: block; }
+  .status.success { background: rgba(34, 197, 94, 0.12); border: 1px solid var(--success); color: var(--success); }
+  .status.error   { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); color: var(--danger); }
+  .status.loading { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); color: var(--muted); }
+  a { color: var(--accent); }
+  .footer-note {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  @media (max-width: 520px) {
+    .field-row { flex-direction: column; gap: 0; }
+    h1 { font-size: 22px; }
+    .card { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://www.jotform.com/uploads/jbilbrey920/form_files/380a458d-1fc0-4986-9cd4-27709cacd119.68941f14782af6.71787380.png" alt="Blufox Monday Ops Completion Checklist">
+    <h1>Blufox Monday Ops Completion Checklist</h1>
+    <p>Managers are required to be at work by 9 AM on Monday mornings to complete this checklist. This checklist should be completed before 10 AM and submitted for approval.</p>
+  </div>
+
+  <form id="checklist" autocomplete="off" novalidate>
+
+    <!-- Card 1: Your Store -->
+    <section class="card">
+      <h2 class="card-title">Your Store</h2>
+
+      <div class="field">
+        <label class="q" for="store">Please Select Your Store Below<span class="req">*</span></label>
+        <select id="store" required>
+          <option value="">Loading stores…</option>
+        </select>
+      </div>
+
+      <!-- Hidden background fields — populated automatically from the store directory, submitted with form -->
+      <input type="hidden" id="name">
+      <input type="hidden" id="email">
+      <input type="hidden" id="dm">
+      <input type="hidden" id="dmEmail">
+      <input type="hidden" id="date">
+    </section>
+
+    <!-- Card 2: Deposit Bags -->
+    <section class="card">
+      <h2 class="card-title">Deposit Bags &amp; Slips</h2>
+      <div class="field">
+        <label class="q">Do you have at least two months of deposit bags and deposit slips?<span class="req">*</span></label>
+        <div class="yesno" data-name="deposit">
+          <label data-value="Yes"><input type="radio" name="deposit" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="deposit" value="No" required>No</label>
+        </div>
+        <div class="resource-link">
+          Need more deposit bags or slips? Order them via the <a href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">Deposit Bag Order Form</a>.
+        </div>
+        <div class="conditional" data-for="deposit" data-show-when="No">
+          If no, please follow this link to order more: <a href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">Deposit Bag Order Form</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 3: PCI Checklist -->
+    <section class="card">
+      <h2 class="card-title">PCI Checklist</h2>
+      <div class="field">
+        <label class="q">Have you completed the PCI Checklist?<span class="req">*</span></label>
+        <div class="yesno" data-name="pci">
+          <label data-value="Yes"><input type="radio" name="pci" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="pci" value="No" required>No</label>
+        </div>
+        <div class="resource-link">
+          Walk through the steps here: <a href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">PCI Checklist Link</a>.
+        </div>
+        <div class="conditional" data-for="pci" data-show-when="No">
+          Please complete the PCI Checklist before proceeding: <a href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">PCI Checklist Link</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 4: Shiftlabs Schedules + 4 photo uploads -->
+    <section class="card">
+      <h2 class="card-title">Shiftlabs Schedules</h2>
+      <div class="field">
+        <label class="q">Do you have 4 weeks of schedules in Shiftlabs?<span class="req">*</span></label>
+        <div class="yesno" data-name="schedules">
+          <label data-value="Yes"><input type="radio" name="schedules" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="schedules" value="No" required>No</label>
+        </div>
+      </div>
+      <div class="field">
+        <label class="q">Upload a picture of each week of schedules<span class="req">*</span></label>
+        <div class="photo-helper">Open each week in Shiftlabs and snap a screenshot/photo. All four required.</div>
+        <div class="photo-grid cols-4">
+          <div class="photo-slot" data-photo-id="week1">
+            <div class="slot-label">Week One</div>
+            <div class="file-drop"><input type="file" id="week1" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="week2">
+            <div class="slot-label">Week Two</div>
+            <div class="file-drop"><input type="file" id="week2" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="week3">
+            <div class="slot-label">Week Three</div>
+            <div class="file-drop"><input type="file" id="week3" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="week4">
+            <div class="slot-label">Week Four</div>
+            <div class="file-drop"><input type="file" id="week4" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 5: Cash Float Tracker -->
+    <section class="card">
+      <h2 class="card-title">Cash Float Tracker</h2>
+      <div class="field">
+        <label class="q">Have you completed the Cash Float Tracker?<span class="req">*</span></label>
+        <div class="yesno" data-name="cashfloat">
+          <label data-value="Yes"><input type="radio" name="cashfloat" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="cashfloat" value="No" required>No</label>
+        </div>
+        <div class="resource-link">
+          Submit your float here: <a href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">Blufox Cash Float Tracker</a>.
+        </div>
+        <div class="conditional" data-for="cashfloat" data-show-when="No">
+          Please complete the Cash Float Tracker before proceeding: <a href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">Blufox Cash Float Tracker</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 6: Upgrades & Trade-Ins / Returns + 2 photos -->
+    <section class="card">
+      <h2 class="card-title">Upgrades &amp; Trade-Ins / Returns</h2>
+      <div class="field">
+        <label class="q">Have you shipped out returns and trade ins?<span class="req">*</span></label>
+        <div class="yesno" data-name="returns">
+          <label data-value="Yes"><input type="radio" name="returns" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="returns" value="No" required>No</label>
+        </div>
+        <div class="conditional info" data-for="returns" data-show-when="No">
+          The goal here is to ship out returns and trade ins every Monday before opening the store. Please ship these out this morning!
+        </div>
+      </div>
+      <div class="field">
+        <label class="q">Upload a screenshot from XInventory showing each bucket has been cleared<span class="req">*</span></label>
+        <div class="photo-helper">Open XInventory, pull up the Upgrades bucket and the Trade-Ins/Returns bucket, and take a screenshot of each one <em>empty</em>. This is our proof that the bucket has been cleared out for the day.</div>
+        <div class="photo-grid cols-2">
+          <div class="photo-slot" data-photo-id="upgrades">
+            <div class="slot-label">Empty Upgrades Bucket (XInventory)</div>
+            <div class="file-drop"><input type="file" id="upgrades" accept="image/*" capture="environment"><p>Upload screenshot</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="tradeins">
+            <div class="slot-label">Empty Trade-Ins / Returns Bucket (XInventory)</div>
+            <div class="file-drop"><input type="file" id="tradeins" accept="image/*" capture="environment"><p>Upload screenshot</p></div>
+            <div class="file-preview"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 7: Brinks Deposit Logs -->
+    <section class="card">
+      <h2 class="card-title">Brinks Deposit Logs</h2>
+      <div class="field">
+        <label class="q">Please upload a picture of last week's Brinks Deposit Logs<span class="req">*</span></label>
+        <div class="photo-slot solo" data-photo-id="brinks">
+          <div class="file-drop"><input type="file" id="brinks" accept="image/*" capture="environment"><p>Tap to choose a photo or drag one here</p><small>JPG/PNG — auto-resized for upload</small></div>
+          <div class="file-preview"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 8: Facilities / Ops Needs (notes + optional photos) -->
+    <section class="card">
+      <h2 class="card-title">Facilities / Ops Needs</h2>
+      <div class="field">
+        <label class="q" for="notes">Is there anything you need in your store from a facilities or ops perspective? Please leave detailed notes of what you need from us. Thank you.</label>
+        <textarea id="notes" placeholder="Optional"></textarea>
+      </div>
+      <div class="field">
+        <label class="q">Upload any photos of facilities issues <span class="optional-tag">Optional</span></label>
+        <div class="photo-helper">If something is broken, leaking, or needs attention, attach a photo and we'll be notified immediately.</div>
+        <div class="photo-grid cols-4">
+          <div class="photo-slot" data-photo-id="facility1" data-optional="true">
+            <div class="slot-label">Photo 1</div>
+            <div class="file-drop"><input type="file" id="facility1" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="facility2" data-optional="true">
+            <div class="slot-label">Photo 2</div>
+            <div class="file-drop"><input type="file" id="facility2" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="facility3" data-optional="true">
+            <div class="slot-label">Photo 3</div>
+            <div class="file-drop"><input type="file" id="facility3" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+          <div class="photo-slot" data-photo-id="facility4" data-optional="true">
+            <div class="slot-label">Photo 4</div>
+            <div class="file-drop"><input type="file" id="facility4" accept="image/*" capture="environment"><p>Tap to choose</p></div>
+            <div class="file-preview"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <button type="submit" class="submit" id="submitBtn">Submit Checklist</button>
+    <div class="status" id="status"></div>
+  </form>
+
+  <p class="footer-note">Blufox Mobile — Internal use only.</p>
+</div>
+
+<script>
+  /* ============================================================
+   * CONFIGURATION — edit these values as needed
+   * ============================================================ */
+  const CONFIG = {
+    // Raw URL of the store directory JSON
+    DIRECTORY_URL: "https://raw.githubusercontent.com/blufoxmobile/Daily-Sales-Report/main/data/store-directory.json",
+
+    // Where to write submissions (one file per submission)
+    GITHUB_OWNER: "blufoxmobile",
+    GITHUB_REPO: "Daily-Sales-Report",
+    GITHUB_BRANCH: "main",
+    SUBMISSIONS_DIR: "data/monday-ops-submissions",
+
+    // GitHub Personal Access Token with `contents: write` on the repo above.
+    // IMPORTANT: this token is embedded in the page — scope it narrowly.
+    // Leave blank to skip GitHub upload (form will save a local JSON file instead).
+    GITHUB_TOKEN: "",
+
+    // Zapier "Catch Hook" webhook URL. Every submission posts here (photos excluded
+    // because of webhook size limits). Use it to trigger an email to the DM/ops when
+    // there are misses — the payload has a `flags.missedItemsHuman` array for that.
+    // In Zapier: Webhooks by Zapier → Catch Hook → copy the URL → paste below.
+    // Leave blank to disable.
+    ZAPIER_WEBHOOK_URL: "",
+
+    // Fallback store list if directory fetch fails
+    FALLBACK_STORES: [
+      "Bourbonnais","Burbank","Calumet City","Cicero","Dekalb","Downer's Grove",
+      "Elkhart","Evanston","Evergreen Park","Frankfort","Glenview","Hammond",
+      "Kildeer","Machesney Park","Michigan City","Round Lake Beach","Schererville",
+      "South Bend","South Skokie","Tinley Park","Uptown","Valparaiso"
+    ],
+
+    // Hard-coded DM emails as a fallback if the directory doesn't supply them.
+    DM_EMAILS: {
+      "Imaad": "",
+      "Juan":  "",
+      "Jacob": ""
+    }
+  };
+
+  // Required photo uploads (id → human label, used for error messages and email body)
+  const REQUIRED_PHOTOS = {
+    week1:    "Schedules — Week 1",
+    week2:    "Schedules — Week 2",
+    week3:    "Schedules — Week 3",
+    week4:    "Schedules — Week 4",
+    upgrades: "Upgrades Bucket",
+    tradeins: "Trade-Ins / Returns Bucket",
+    brinks:   "Brinks Deposit Logs"
+  };
+
+  // Optional photo uploads (managers can attach 0+ photos of facilities issues)
+  const OPTIONAL_PHOTOS = {
+    facility1: "Facilities Issue — Photo 1",
+    facility2: "Facilities Issue — Photo 2",
+    facility3: "Facilities Issue — Photo 3",
+    facility4: "Facilities Issue — Photo 4"
+  };
+
+  // Friendly labels for the Zapier email body
+  const ANSWER_LABELS = {
+    depositBags:    "Two months of deposit bags & slips",
+    pciChecklist:   "PCI Checklist complete",
+    scheduleWeeks:  "4 weeks of schedules in Shiftlabs",
+    cashFloat:      "Cash Float Tracker complete",
+    returnsShipped: "Returns & trade-ins shipped"
+  };
+
+  /* ============================================================ */
+
+  const $ = id => document.getElementById(id);
+  const slugify = s => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  function pickField(obj, names) {
+    if (!obj) return "";
+    const keys = Object.keys(obj);
+    for (const n of names) {
+      const hit = keys.find(k => k.toLowerCase().replace(/[_\s-]/g, "") === n.toLowerCase().replace(/[_\s-]/g, ""));
+      if (hit && obj[hit] != null && obj[hit] !== "") return String(obj[hit]);
+    }
+    return "";
+  }
+
+  function normalizeDirectory(data) {
+    let arr = [];
+    if (Array.isArray(data)) arr = data;
+    else if (Array.isArray(data?.stores)) arr = data.stores;
+    else if (Array.isArray(data?.data)) arr = data.data;
+    else if (data && typeof data === "object") {
+      for (const [k, v] of Object.entries(data)) {
+        if (v && typeof v === "object") arr.push({ store: k, ...v });
+      }
+    }
+    return arr.map(e => ({
+      raw: e,
+      store:        pickField(e, ["store","storeName","location","name","site"]),
+      manager:      pickField(e, ["manager","managerName","storeManager","sm","smName","managerFullName"]),
+      managerEmail: pickField(e, ["managerEmail","email","managerEmailAddress","smEmail","storeManagerEmail"]),
+      dm:           pickField(e, ["dm","districtManager","dmName"]),
+      dmEmail:      pickField(e, ["dmEmail","dmEmailAddress","districtManagerEmail"])
+    })).filter(e => e.store);
+  }
+
+  let DIRECTORY = [];
+
+  async function loadDirectory() {
+    const sel = $("store");
+    try {
+      const res = await fetch(CONFIG.DIRECTORY_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      DIRECTORY = normalizeDirectory(json);
+      if (!DIRECTORY.length) throw new Error("No stores in directory");
+    } catch (err) {
+      console.warn("Directory fetch failed, using fallback:", err);
+      DIRECTORY = CONFIG.FALLBACK_STORES.map(s => ({
+        store: s, manager: "", managerEmail: "", dm: "", dmEmail: ""
+      }));
+    }
+    DIRECTORY.sort((a, b) => a.store.localeCompare(b.store));
+    sel.innerHTML = '<option value="">Please Select</option>' +
+      DIRECTORY.map(e => `<option value="${escapeHtml(e.store)}">${escapeHtml(e.store)}</option>`).join("");
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+  }
+
+  // Auto-fill all identity fields (incl. hidden ones) on store change
+  $("store").addEventListener("change", e => {
+    const entry = DIRECTORY.find(d => d.store === e.target.value);
+    $("name").value    = entry?.manager      || "";
+    $("email").value   = entry?.managerEmail || "";
+    $("dm").value      = entry?.dm           || "";
+    $("dmEmail").value = entry?.dmEmail || (entry?.dm && CONFIG.DM_EMAILS[entry.dm]) || "";
+  });
+
+  // Y/N styling + conditional reveal
+  document.querySelectorAll(".yesno").forEach(group => {
+    group.addEventListener("change", () => {
+      const name = group.dataset.name;
+      const selected = group.querySelector("input:checked")?.value;
+      group.querySelectorAll("label").forEach(l => {
+        l.classList.toggle("checked", l.dataset.value === selected);
+      });
+      const cond = document.querySelector(`.conditional[data-for="${name}"]`);
+      if (cond) {
+        const showWhen = cond.dataset.showWhen || "No";
+        cond.classList.toggle("show", selected === showWhen);
+      }
+    });
+  });
+
+  // Image resize
+  function resizeImage(file, maxDim = 1600, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else                 { width  = Math.round(width  * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Wire up every photo slot on the page
+  document.querySelectorAll(".photo-slot[data-photo-id]").forEach(slot => {
+    const drop = slot.querySelector(".file-drop");
+    const input = slot.querySelector('input[type="file"]');
+    const preview = slot.querySelector(".file-preview");
+
+    drop.addEventListener("click", () => input.click());
+    drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+    drop.addEventListener("drop", e => {
+      e.preventDefault(); drop.classList.remove("drag");
+      if (e.dataTransfer.files.length) {
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event("change"));
+      }
+    });
+    input.addEventListener("change", async () => {
+      preview.innerHTML = "";
+      const f = input.files[0];
+      if (!f) { delete input.dataset.value; return; }
+      try {
+        const dataUrl = await resizeImage(f);
+        input.dataset.value = dataUrl;
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        preview.appendChild(img);
+      } catch (err) {
+        console.error("Image processing failed:", err);
+      }
+    });
+  });
+
+  // Default date (hidden field)
+  $("date").value = new Date().toISOString().slice(0, 10);
+
+  // Submit
+  $("checklist").addEventListener("submit", async e => {
+    e.preventDefault();
+    const status = $("status"), btn = $("submitBtn"), form = e.target;
+
+    if (!$("store").value) {
+      return showStatus("error", "Please select your store before submitting.");
+    }
+    const autoFilled = ["name","email","dm","date"];
+    for (const id of autoFilled) {
+      if (!$(id).value) {
+        return showStatus("error", "Your store directory entry is missing a required field. Please contact ops to update the store directory before submitting.");
+      }
+    }
+    const radios = ["deposit","pci","schedules","cashfloat","returns"];
+    for (const r of radios) {
+      if (!form[r].value) return showStatus("error", "Please answer all yes/no questions.");
+    }
+
+    // All required photos
+    const missing = [];
+    const photos = {};
+    for (const [id, label] of Object.entries(REQUIRED_PHOTOS)) {
+      const v = $(id).dataset.value;
+      if (!v) missing.push(label);
+      else photos[id] = v;
+    }
+    if (missing.length) {
+      return showStatus("error", "Please upload these photos: " + missing.join(", ") + ".");
+    }
+    // Optional facilities-issue photos (only included if uploaded)
+    for (const id of Object.keys(OPTIONAL_PHOTOS)) {
+      const v = $(id).dataset.value;
+      if (v) photos[id] = v;
+    }
+
+    const data = {
+      submittedAt: new Date().toISOString(),
+      store: $("store").value,
+      name: $("name").value,
+      email: $("email").value,
+      dm: $("dm").value,
+      dmEmail: $("dmEmail").value,
+      date: $("date").value,
+      answers: {
+        depositBags:    form.deposit.value,
+        pciChecklist:   form.pci.value,
+        scheduleWeeks:  form.schedules.value,
+        cashFloat:      form.cashfloat.value,
+        returnsShipped: form.returns.value
+      },
+      notes: $("notes").value,
+      photos
+    };
+
+    btn.disabled = true;
+    showStatus("loading", "Submitting…");
+
+    try {
+      if (CONFIG.GITHUB_TOKEN) {
+        await pushToGitHub(data);
+        showStatus("success", "✓ Checklist submitted successfully. You can close this page.");
+      } else {
+        downloadJSON(data);
+        showStatus("success", "✓ No GitHub token configured. Checklist saved as a local JSON file — send it to your DM.");
+      }
+      notifyZapier(data).catch(e => console.warn("Zapier webhook failed:", e));
+      if (CONFIG.GITHUB_TOKEN) resetForm();
+    } catch (err) {
+      console.error(err);
+      showStatus("error", "Upload failed: " + err.message + " — saved locally instead.");
+      downloadJSON(data);
+      notifyZapier(data).catch(e => console.warn("Zapier webhook failed:", e));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  function showStatus(type, msg) {
+    const s = $("status");
+    s.className = "status show " + type;
+    s.textContent = msg;
+  }
+
+  function resetForm() {
+    $("checklist").reset();
+    document.querySelectorAll(".file-preview").forEach(p => p.innerHTML = "");
+    document.querySelectorAll('input[type="file"]').forEach(i => { delete i.dataset.value; });
+    document.querySelectorAll(".yesno label.checked").forEach(l => l.classList.remove("checked"));
+    document.querySelectorAll(".conditional.show").forEach(c => c.classList.remove("show"));
+    $("date").value = new Date().toISOString().slice(0, 10);
+  }
+
+  function downloadJSON(data) {
+    const filename = `${data.date}-${slugify(data.store) || "submission"}.json`;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function pushToGitHub(data) {
+    const filename = `${data.date}-${slugify(data.store)}.json`;
+    const path = `${CONFIG.SUBMISSIONS_DIR}/${filename}`;
+    const apiBase = `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`;
+
+    let sha;
+    try {
+      const head = await fetch(apiBase + "?ref=" + encodeURIComponent(CONFIG.GITHUB_BRANCH), {
+        headers: { Authorization: "token " + CONFIG.GITHUB_TOKEN, Accept: "application/vnd.github+json" }
+      });
+      if (head.ok) sha = (await head.json()).sha;
+    } catch {}
+
+    const body = {
+      message: `Monday Ops checklist: ${data.store} ${data.date}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+      branch: CONFIG.GITHUB_BRANCH
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(apiBase, {
+      method: "PUT",
+      headers: {
+        Authorization: "token " + CONFIG.GITHUB_TOKEN,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`GitHub ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+
+  async function notifyZapier(data) {
+    if (!CONFIG.ZAPIER_WEBHOOK_URL) return;
+    const ans = data.answers || {};
+    const missedItems = Object.keys(ANSWER_LABELS).filter(k => ans[k] === "No");
+    const facilitiesPhotoCount = Object.keys(OPTIONAL_PHOTOS).filter(id => data.photos?.[id]).length;
+    const hasNotes = !!(data.notes && data.notes.trim());
+    const hasFacilitiesRequest = hasNotes || facilitiesPhotoCount > 0;
+    const payload = {
+      submittedAt: data.submittedAt,
+      date: data.date,
+      store: data.store,
+      manager: data.name,
+      managerEmail: data.email,
+      dm: data.dm,
+      dmEmail: data.dmEmail,
+      notes: data.notes,
+      answers: ans,
+      facilitiesPhotoCount,
+      flags: {
+        hasMisses: missedItems.length > 0,
+        missCount: missedItems.length,
+        missedItems,
+        missedItemsHuman: missedItems.map(k => ANSWER_LABELS[k]),
+        hasFacilitiesRequest,
+        hasFacilitiesNotes: hasNotes,
+        hasFacilitiesPhotos: facilitiesPhotoCount > 0
+      }
+    };
+    // Photos intentionally omitted — too large for webhooks. Reviewers pull them
+    // from the tracker page or the GitHub submissions file.
+    await fetch(CONFIG.ZAPIER_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      mode: "cors"
+    });
+  }
+
+  loadDirectory();
+</script>
+</body>
+</html>
