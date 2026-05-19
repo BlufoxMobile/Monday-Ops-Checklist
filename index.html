@@ -592,6 +592,48 @@
   }
 
   function normalizeDirectory(data) {
+    // --- Schema written by the Admin-Panel-Directory app ---
+    // The admin panel saves data shaped like:
+    //   {
+    //     stores: ["Store A", "Store B", ...],           // array of strings
+    //     managers: [...], dms: [...],                   // option lists (ignored here)
+    //     storeManagers:     { "Store A": "mgr@..." },   // store name -> manager email
+    //     storeDMs:          { "Store A": "dm@..."  },   // store name -> DM email
+    //     storeManagerNames: { "Store A": "Jane Doe" }   // store name -> manager full name
+    //   }
+    // The generic handler below can't parse this because `stores` is a list of
+    // plain strings (no embedded manager/DM data), so we handle it explicitly.
+    if (
+      data && typeof data === "object" &&
+      Array.isArray(data.stores) &&
+      data.stores.length > 0 &&
+      typeof data.stores[0] === "string" &&
+      (data.storeManagers || data.storeDMs || data.storeManagerNames)
+    ) {
+      const sm  = (data.storeManagers     && typeof data.storeManagers     === "object") ? data.storeManagers     : {};
+      const sd  = (data.storeDMs          && typeof data.storeDMs          === "object") ? data.storeDMs          : {};
+      const smn = (data.storeManagerNames && typeof data.storeManagerNames === "object") ? data.storeManagerNames : {};
+      const sdn = (data.storeDMNames      && typeof data.storeDMNames      === "object") ? data.storeDMNames      : {};
+      return data.stores
+        .filter(name => typeof name === "string" && name.trim() !== "")
+        .map(name => {
+          const managerEmail = sm[name] || "";
+          const dmEmail      = sd[name] || "";
+          return {
+            store:        name,
+            // Prefer the full name; fall back to the email so the required
+            // `name` field is never blank for stores that have a manager.
+            manager:      smn[name] || managerEmail || "",
+            managerEmail,
+            // No DM-names map exists in the current admin panel — use the
+            // email as the DM identifier so submissions can still go through.
+            dm:           sdn[name] || dmEmail || "",
+            dmEmail
+          };
+        });
+    }
+
+    // --- Generic fallback (arrays of objects, etc.) ---
     let arr = [];
     if (Array.isArray(data)) arr = data;
     else if (Array.isArray(data?.stores)) arr = data.stores;
