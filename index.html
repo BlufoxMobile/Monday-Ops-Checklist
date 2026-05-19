@@ -538,12 +538,14 @@
     // upload directly to GitHub (no local JSON download fallback for managers).
     GITHUB_TOKEN: EMBEDDED_TOKEN,
 
-    // Zapier "Catch Hook" webhook URL. Every submission posts here (photos excluded
-    // because of webhook size limits). Use it to trigger an email to the DM/ops when
-    // there are misses — the payload has a `flags.missedItemsHuman` array for that.
-    // In Zapier: Webhooks by Zapier → Catch Hook → copy the URL → paste below.
-    // Leave blank to disable.
-    ZAPIER_WEBHOOK_URL: "",
+    // Zapier "Catch Hook" webhook URL. Every submission posts here so the
+    // "Monday Ops Email" Zap can build and send the HTML email (with photos
+    // embedded inline as base64, mirroring the DM Visit Guide pattern).
+    // The payload includes `payloadJson` (full submission as a JSON string)
+    // plus flat top-level fields and a `flags.missedItemsHuman` array.
+    // To rotate: Zapier → Monday Ops Email Zap → Catch Hook → copy URL.
+    // Leave blank to disable webhook delivery (submissions still upload to GitHub).
+    ZAPIER_WEBHOOK_URL: "https://hooks.zapier.com/hooks/catch/20441079/2ihnx0s/",
 
     // Fallback store list if directory fetch fails
     FALLBACK_STORES: [
