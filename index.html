@@ -1000,8 +1000,28 @@
         hasFacilitiesPhotos: facilitiesPhotoCount > 0
       }
     };
-    // Single-field JSON copy — easiest path for the Code step to read everything.
-    payload.payloadJson = JSON.stringify(payload);
+    // Also flatten photo data into top-level fields so Zapier's Catch Hook
+    // exposes them as simple pickable fields (e.g. "Photos Brinks", "Photos Week1")
+    // rather than burying them inside a nested object. The Code step reads
+    // these individually because Zapier auto-parses anything containing JSON.
+    const ph = payload.photos || {};
+    payload.photoBrinks     = ph.brinks    || "";
+    payload.photoWeek1      = ph.week1     || "";
+    payload.photoWeek2      = ph.week2     || "";
+    payload.photoWeek3      = ph.week3     || "";
+    payload.photoWeek4      = ph.week4     || "";
+    payload.photoUpgrades   = ph.upgrades  || "";
+    payload.photoTradeins   = ph.tradeins  || "";
+    payload.photoFacility1  = ph.facility1 || "";
+    payload.photoFacility2  = ph.facility2 || "";
+    payload.photoFacility3  = ph.facility3 || "";
+    payload.photoFacility4  = ph.facility4 || "";
+    // Also flatten missedItemsHuman so the email template can grab it directly.
+    payload.missedItems = payload.flags?.missedItemsHuman || [];
+    // NOTE: previously included `payloadJson: JSON.stringify(payload)` here, but
+    // Zapier's Catch Hook auto-parses fields whose name contains "Json", which
+    // mangled the value into a JS-object-literal string that JSON.parse couldn't
+    // read on the Code step's side. We now rely on flat fields instead.
 
     // CORS gotcha: hooks.zapier.com doesn't return Access-Control-Allow-Origin
     // headers, so a normal `application/json` POST triggers a preflight that
