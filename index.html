@@ -1002,11 +1002,19 @@
     };
     // Single-field JSON copy — easiest path for the Code step to read everything.
     payload.payloadJson = JSON.stringify(payload);
+
+    // CORS gotcha: hooks.zapier.com doesn't return Access-Control-Allow-Origin
+    // headers, so a normal `application/json` POST triggers a preflight that
+    // fails with "TypeError: Failed to fetch". Workaround: use mode "no-cors"
+    // with a "simple" content type ("text/plain") to skip preflight entirely.
+    // Zapier parses the body as JSON regardless of the Content-Type header.
+    // The response becomes opaque (we can't read status), so we rely on the
+    // request resolving without throwing as our signal of success.
     await fetch(CONFIG.ZAPIER_WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify(payload),
-      mode: "cors"
+      mode: "no-cors"
     });
   }
 
