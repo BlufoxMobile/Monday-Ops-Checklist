@@ -773,8 +773,23 @@
     });
   });
 
-  // Default date (hidden field)
-  $("date").value = new Date().toISOString().slice(0, 10);
+  // Default date (hidden field) — snap to this week's Monday in LOCAL time
+  // so submissions land on the correct week in the Monday Ops Tracker
+  // regardless of submission day or timezone.
+  function thisOrLastMonday(d) {
+    d = new Date(d); d.setHours(0, 0, 0, 0);
+    const diff = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - diff);
+    return d;
+  }
+  function fmtDateLocalISO(d) {
+    d = new Date(d);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  $("date").value = fmtDateLocalISO(thisOrLastMonday(new Date()));
 
   // Submit
   $("checklist").addEventListener("submit", async e => {
@@ -866,7 +881,7 @@
     document.querySelectorAll('input[type="file"]').forEach(i => { delete i.dataset.value; });
     document.querySelectorAll(".yesno label.checked").forEach(l => l.classList.remove("checked"));
     document.querySelectorAll(".conditional.show").forEach(c => c.classList.remove("show"));
-    $("date").value = new Date().toISOString().slice(0, 10);
+    $("date").value = fmtDateLocalISO(thisOrLastMonday(new Date()));
   }
 
   function downloadJSON(data) {
