@@ -508,6 +508,18 @@
 
 <script>
   /* ============================================================
+   * EMBEDDED GITHUB TOKEN
+   * Same XOR-encoded scheme used by Admin-Panel-Directory and crm.html.
+   * To rotate the token, regenerate _TOKEN_ENCODED with the SAME _TOKEN_KEY
+   * ("blufox") in all three files using:
+   *   const t='YOUR_TOKEN'; const k='blufox';
+   *   JSON.stringify([...t].map((c,i)=>c.charCodeAt(0)^k.charCodeAt(i%k.length)))
+   * ============================================================ */
+  const _TOKEN_ENCODED = [5,5,1,14,26,26,61,28,20,18,48,73,83,47,52,46,45,76,85,61,69,14,93,0,51,59,66,53,90,48,53,35,22,57,32,10,17,88,71,86,1,46,16,58,3,15,29,32,59,26,1,50,34,21,17,5,48,55,31,11,49,10,61,62,45,8,49,30,58,21,43,8,27,57,24,28,31,34,42,63,58,85,46,63,39,4,23,52,89,57,48,15,63];
+  const _TOKEN_KEY = 'blufox';
+  const EMBEDDED_TOKEN = _TOKEN_ENCODED.map((c,i)=>String.fromCharCode(c ^ _TOKEN_KEY.charCodeAt(i % _TOKEN_KEY.length))).join('');
+
+  /* ============================================================
    * CONFIGURATION — edit these values as needed
    * ============================================================ */
   const CONFIG = {
@@ -515,15 +527,16 @@
     DIRECTORY_URL: "https://raw.githubusercontent.com/blufoxmobile/Daily-Sales-Report/main/data/store-directory.json",
 
     // Where to write submissions (one file per submission)
+    // The Monday Ops Tracker (Brinks-Logbook-Reporting/monday-ops.html) reads from this path.
     GITHUB_OWNER: "blufoxmobile",
     GITHUB_REPO: "Daily-Sales-Report",
     GITHUB_BRANCH: "main",
     SUBMISSIONS_DIR: "data/monday-ops-submissions",
 
     // GitHub Personal Access Token with `contents: write` on the repo above.
-    // IMPORTANT: this token is embedded in the page — scope it narrowly.
-    // Leave blank to skip GitHub upload (form will save a local JSON file instead).
-    GITHUB_TOKEN: "",
+    // Uses the embedded token from the shared XOR-encoded array above so submissions
+    // upload directly to GitHub (no local JSON download fallback for managers).
+    GITHUB_TOKEN: EMBEDDED_TOKEN,
 
     // Zapier "Catch Hook" webhook URL. Every submission posts here (photos excluded
     // because of webhook size limits). Use it to trigger an email to the DM/ops when
