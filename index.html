@@ -930,6 +930,9 @@
     return res.json();
   }
 
+  // Always-CC'd email for ops/leadership visibility.
+  const OPS_CC_EMAIL = "jeffbilbrey@blufoxmobile.com";
+
   async function notifyZapier(data) {
     if (!CONFIG.ZAPIER_WEBHOOK_URL) return;
     const ans = data.answers || {};
@@ -937,6 +940,27 @@
     const facilitiesPhotoCount = Object.keys(OPTIONAL_PHOTOS).filter(id => data.photos?.[id]).length;
     const hasNotes = !!(data.notes && data.notes.trim());
     const hasFacilitiesRequest = hasNotes || facilitiesPhotoCount > 0;
+
+    // Photos are passed inline as base64 data URLs — same pattern the DM Visit
+    // Guide Zap uses to embed photos in the HTML email. Order matters: required
+    // photos first so the email lays them out in a predictable sequence.
+    const photos = data.photos || {};
+    const photoBlock = {};
+    for (const k of Object.keys(REQUIRED_PHOTOS)) {
+      if (photos[k]) photoBlock[k] = photos[k];
+    }
+    for (const k of Object.keys(OPTIONAL_PHOTOS)) {
+      if (photos[k]) photoBlock[k] = photos[k];
+    }
+
+    // Recipient list for the Send Email step. Filter empties so Outlook doesn't
+    // reject the message because of a blank address.
+    const toEmails = [data.email].filter(Boolean).join(", ");
+    const ccEmails = [data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
+
+    // Zapier's Catch Hook flattens nested objects, so we ALSO send a single
+    // JSON-stringified copy of the full payload. The Code step parses it back
+    // into a normal object and avoids any guesswork about Zapier's flattening.
     const payload = {
       submittedAt: data.submittedAt,
       date: data.date,
@@ -947,7 +971,23 @@
       dmEmail: data.dmEmail,
       notes: data.notes,
       answers: ans,
+      // Top-level flat answer fields so they're also pickable in Zapier UI:
+      depositBags:    ans.depositBags    || "",
+      pciChecklist:   ans.pciChecklist   || "",
+      scheduleWeeks:  ans.scheduleWeeks  || "",
+      cashFloat:      ans.cashFloat      || "",
+      returnsShipped: ans.returnsShipped || "",
       facilitiesPhotoCount,
+      // Convenience fields for the Zap's Send Email step
+      toEmails,
+      ccEmails,
+      opsEmail: OPS_CC_EMAIL,
+      // Human-friendly labels keyed by answer id so the email template can
+      // iterate without re-hardcoding strings.
+      answerLabels: ANSWER_LABELS,
+      photoLabels: { ...REQUIRED_PHOTOS, ...OPTIONAL_PHOTOS },
+      // Inline photos (base64 data URLs). Mirrors the DM Visit Guide pattern.
+      photos: photoBlock,
       flags: {
         hasMisses: missedItems.length > 0,
         missCount: missedItems.length,
@@ -958,8 +998,8 @@
         hasFacilitiesPhotos: facilitiesPhotoCount > 0
       }
     };
-    // Photos intentionally omitted — too large for webhooks. Reviewers pull them
-    // from the tracker page or the GitHub submissions file.
+    // Single-field JSON copy — easiest path for the Code step to read everything.
+    payload.payloadJson = JSON.stringify(payload);
     await fetch(CONFIG.ZAPIER_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
