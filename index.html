@@ -326,6 +326,7 @@
       <input type="hidden" id="email">
       <input type="hidden" id="dm">
       <input type="hidden" id="dmEmail">
+      <input type="hidden" id="asmEmail">
       <input type="hidden" id="date">
     </section>
 
@@ -629,11 +630,13 @@
       const sd  = (data.storeDMs          && typeof data.storeDMs          === "object") ? data.storeDMs          : {};
       const smn = (data.storeManagerNames && typeof data.storeManagerNames === "object") ? data.storeManagerNames : {};
       const sdn = (data.storeDMNames      && typeof data.storeDMNames      === "object") ? data.storeDMNames      : {};
+      const sa  = (data.storeAMs          && typeof data.storeAMs          === "object") ? data.storeAMs          : {};
       return data.stores
         .filter(name => typeof name === "string" && name.trim() !== "")
         .map(name => {
           const managerEmail = sm[name] || "";
           const dmEmail      = sd[name] || "";
+          const asmEmail     = sa[name] || "";
           return {
             store:        name,
             // Prefer the full name; fall back to the email so the required
@@ -643,7 +646,8 @@
             // No DM-names map exists in the current admin panel — use the
             // email as the DM identifier so submissions can still go through.
             dm:           sdn[name] || dmEmail || "",
-            dmEmail
+            dmEmail,
+            asmEmail
           };
         });
     }
@@ -664,7 +668,8 @@
       manager:      pickField(e, ["manager","managerName","storeManager","sm","smName","managerFullName"]),
       managerEmail: pickField(e, ["managerEmail","email","managerEmailAddress","smEmail","storeManagerEmail"]),
       dm:           pickField(e, ["dm","districtManager","dmName"]),
-      dmEmail:      pickField(e, ["dmEmail","dmEmailAddress","districtManagerEmail"])
+      dmEmail:      pickField(e, ["dmEmail","dmEmailAddress","districtManagerEmail"]),
+      asmEmail:     pickField(e, ["asmEmail","assistantManagerEmail","amEmail"])
     })).filter(e => e.store);
   }
 
@@ -700,6 +705,7 @@
     $("email").value   = entry?.managerEmail || "";
     $("dm").value      = entry?.dm           || "";
     $("dmEmail").value = entry?.dmEmail || (entry?.dm && CONFIG.DM_EMAILS[entry.dm]) || "";
+    $("asmEmail").value = entry?.asmEmail || "";
   });
 
   // Y/N styling + conditional reveal
@@ -836,6 +842,7 @@
       email: $("email").value,
       dm: $("dm").value,
       dmEmail: $("dmEmail").value,
+      asmEmail: $("asmEmail").value,
       date: $("date").value,
       answers: {
         depositBags:    form.deposit.value,
@@ -958,7 +965,7 @@
     // Recipient list for the Send Email step. Filter empties so Outlook doesn't
     // reject the message because of a blank address.
     const toEmails = [data.email].filter(Boolean).join(", ");
-    const ccEmails = [data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
+    const ccEmails = [data.asmEmail, data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
 
     // Zapier's Catch Hook flattens nested objects, so we ALSO send a single
     // JSON-stringified copy of the full payload. The Code step parses it back
@@ -971,6 +978,7 @@
       managerEmail: data.email,
       dm: data.dm,
       dmEmail: data.dmEmail,
+      asmEmail: data.asmEmail,
       notes: data.notes,
       answers: ans,
       // Top-level flat answer fields so they're also pickable in Zapier UI:
