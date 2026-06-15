@@ -404,7 +404,22 @@
       </div>
     </section>
 
-    <!-- Card 5: Cash Float Tracker -->
+    <!-- Card 5: Uniforms for New Hires -->
+    <section class="card">
+      <h2 class="card-title">Uniforms for New Hires</h2>
+      <div class="field">
+        <label class="q">Do you need uniforms for your new hires?<span class="req">*</span></label>
+        <div class="yesno" data-name="uniforms">
+          <label data-value="Yes"><input type="radio" name="uniforms" value="Yes" required>Yes</label>
+          <label data-value="No"><input type="radio" name="uniforms" value="No" required>No</label>
+        </div>
+        <div class="conditional info" data-for="uniforms" data-show-when="Yes">
+          Order new shirts here: <a href="https://blufoxmobile.github.io/Uniform-Order-Form/" target="_blank" rel="noopener noreferrer">Blufox Mobile Uniform Order Form</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card 6: Cash Float Tracker -->
     <section class="card">
       <h2 class="card-title">Cash Float Tracker</h2>
       <div class="field">
@@ -422,7 +437,7 @@
       </div>
     </section>
 
-    <!-- Card 6: Upgrades & Trade-Ins / Returns + 2 photos -->
+    <!-- Card 7: Upgrades & Trade-Ins / Returns + 2 photos -->
     <section class="card">
       <h2 class="card-title">Upgrades &amp; Trade-Ins / Returns</h2>
       <div class="field">
@@ -453,7 +468,7 @@
       </div>
     </section>
 
-    <!-- Card 7: Brinks Deposit Logs -->
+    <!-- Card 8: Brinks Deposit Logs -->
     <section class="card">
       <h2 class="card-title">Brinks Deposit Logs</h2>
       <div class="field">
@@ -465,7 +480,7 @@
       </div>
     </section>
 
-    <!-- Card 8: Facilities / Ops Needs (notes + optional photos) -->
+    <!-- Card 9: Facilities / Ops Needs (notes + optional photos) -->
     <section class="card">
       <h2 class="card-title">Facilities / Ops Needs</h2>
       <div class="field">
@@ -561,7 +576,11 @@
       "Imaad": "",
       "Juan":  "",
       "Jacob": ""
-    }
+    },
+
+    // Uniform order form shown to managers (and emailed) when they need
+    // uniforms for new hires.
+    UNIFORM_ORDER_URL: "https://blufoxmobile.github.io/Uniform-Order-Form/"
   };
 
   // Required photo uploads (id → human label, used for error messages and email body)
@@ -583,7 +602,11 @@
     facility4: "Facilities Issue — Photo 4"
   };
 
-  // Friendly labels for the Zapier email body
+  // Friendly labels for the Zapier email body.
+  // NOTE: only the "pass/fail" checklist items belong here — a "No" answer for
+  // any of these is treated as a MISSED item. The uniforms question is handled
+  // separately (a "No" there just means no uniforms are needed) so it is
+  // intentionally NOT included in this map.
   const ANSWER_LABELS = {
     depositBags:    "Two months of deposit bags & slips",
     pciChecklist:   "PCI Checklist complete",
@@ -813,7 +836,7 @@
         return showStatus("error", "Your store directory entry is missing a required field. Please contact ops to update the store directory before submitting.");
       }
     }
-    const radios = ["deposit","pci","schedules","cashfloat","returns"];
+    const radios = ["deposit","pci","schedules","uniforms","cashfloat","returns"];
     for (const r of radios) {
       if (!form[r].value) return showStatus("error", "Please answer all yes/no questions.");
     }
@@ -849,7 +872,8 @@
         pciChecklist:   form.pci.value,
         scheduleWeeks:  form.schedules.value,
         cashFloat:      form.cashfloat.value,
-        returnsShipped: form.returns.value
+        returnsShipped: form.returns.value,
+        uniformsNeeded: form.uniforms.value
       },
       notes: $("notes").value,
       photos
@@ -950,6 +974,11 @@
     const hasNotes = !!(data.notes && data.notes.trim());
     const hasFacilitiesRequest = hasNotes || facilitiesPhotoCount > 0;
 
+    // Uniforms for new hires: a "Yes" means the manager needs shirts ordered.
+    // This is NOT a "missed item" — it's a separate request surfaced to the ASM.
+    const uniformsNeeded = ans.uniformsNeeded || "";
+    const needsUniforms = uniformsNeeded === "Yes";
+
     // Photos are passed inline as base64 data URLs — same pattern the DM Visit
     // Guide Zap uses to embed photos in the HTML email. Order matters: required
     // photos first so the email lays them out in a predictable sequence.
@@ -963,7 +992,8 @@
     }
 
     // Recipient list for the Send Email step. Filter empties so Outlook doesn't
-    // reject the message because of a blank address.
+    // reject the message because of a blank address. The ASM is CC'd on every
+    // submission so they always see the checklist (incl. the uniform request).
     const toEmails = [data.email].filter(Boolean).join(", ");
     const ccEmails = [data.asmEmail, data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
 
@@ -987,6 +1017,9 @@
       scheduleWeeks:  ans.scheduleWeeks  || "",
       cashFloat:      ans.cashFloat      || "",
       returnsShipped: ans.returnsShipped || "",
+      // Uniforms-for-new-hires request (separate from the pass/fail items):
+      uniformsNeeded: uniformsNeeded,
+      uniformOrderLink: needsUniforms ? CONFIG.UNIFORM_ORDER_URL : "",
       facilitiesPhotoCount,
       // Convenience fields for the Zap's Send Email step
       toEmails,
@@ -1005,7 +1038,8 @@
         missedItemsHuman: missedItems.map(k => ANSWER_LABELS[k]),
         hasFacilitiesRequest,
         hasFacilitiesNotes: hasNotes,
-        hasFacilitiesPhotos: facilitiesPhotoCount > 0
+        hasFacilitiesPhotos: facilitiesPhotoCount > 0,
+        needsUniforms
       }
     };
     // Also flatten photo data into top-level fields so Zapier's Catch Hook
