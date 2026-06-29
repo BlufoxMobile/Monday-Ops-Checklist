@@ -404,7 +404,7 @@
       </div>
     </section>
 
-    <!-- Card 5: Uniforms for New Hires -->
+    <!-- Card 4b: Uniforms for New Hires -->
     <section class="card">
       <h2 class="card-title">Uniforms for New Hires</h2>
       <div class="field">
@@ -419,7 +419,7 @@
       </div>
     </section>
 
-    <!-- Card 6: Cash Float Tracker -->
+    <!-- Card 5: Cash Float Tracker -->
     <section class="card">
       <h2 class="card-title">Cash Float Tracker</h2>
       <div class="field">
@@ -437,7 +437,7 @@
       </div>
     </section>
 
-    <!-- Card 7: Upgrades & Trade-Ins / Returns + 2 photos -->
+    <!-- Card 6: Upgrades & Trade-Ins / Returns + 2 photos -->
     <section class="card">
       <h2 class="card-title">Upgrades &amp; Trade-Ins / Returns</h2>
       <div class="field">
@@ -468,7 +468,7 @@
       </div>
     </section>
 
-    <!-- Card 8: Brinks Deposit Logs -->
+    <!-- Card 7: Brinks Deposit Logs -->
     <section class="card">
       <h2 class="card-title">Brinks Deposit Logs</h2>
       <div class="field">
@@ -480,7 +480,7 @@
       </div>
     </section>
 
-    <!-- Card 9: Facilities / Ops Needs (notes + optional photos) -->
+    <!-- Card 8: Facilities / Ops Needs (notes + optional photos) -->
     <section class="card">
       <h2 class="card-title">Facilities / Ops Needs</h2>
       <div class="field">
@@ -549,6 +549,10 @@
     GITHUB_BRANCH: "main",
     SUBMISSIONS_DIR: "data/monday-ops-submissions",
 
+    // Where to write hosted photo files (one .jpg per uploaded photo).
+    // The Zapier email links to the raw.githubusercontent.com URLs under this dir.
+    PHOTOS_DIR: "data/monday-ops-photos",
+
     // GitHub Personal Access Token with `contents: write` on the repo above.
     // Uses the embedded token from the shared XOR-encoded array above so submissions
     // upload directly to GitHub (no local JSON download fallback for managers).
@@ -576,11 +580,7 @@
       "Imaad": "",
       "Juan":  "",
       "Jacob": ""
-    },
-
-    // Uniform order form shown to managers (and emailed) when they need
-    // uniforms for new hires.
-    UNIFORM_ORDER_URL: "https://blufoxmobile.github.io/Uniform-Order-Form/"
+    }
   };
 
   // Required photo uploads (id → human label, used for error messages and email body)
@@ -602,11 +602,7 @@
     facility4: "Facilities Issue — Photo 4"
   };
 
-  // Friendly labels for the Zapier email body.
-  // NOTE: only the "pass/fail" checklist items belong here — a "No" answer for
-  // any of these is treated as a MISSED item. The uniforms question is handled
-  // separately (a "No" there just means no uniforms are needed) so it is
-  // intentionally NOT included in this map.
+  // Friendly labels for the Zapier email body
   const ANSWER_LABELS = {
     depositBags:    "Two months of deposit bags & slips",
     pciChecklist:   "PCI Checklist complete",
@@ -871,9 +867,9 @@
         depositBags:    form.deposit.value,
         pciChecklist:   form.pci.value,
         scheduleWeeks:  form.schedules.value,
+        uniformsNeeded: form.uniforms.value,
         cashFloat:      form.cashfloat.value,
-        returnsShipped: form.returns.value,
-        uniformsNeeded: form.uniforms.value
+        returnsShipped: form.returns.value
       },
       notes: $("notes").value,
       photos
@@ -881,6 +877,18 @@
 
     btn.disabled = true;
     showStatus("loading", "Submitting…");
+
+    // Host each photo as a real .jpg in GitHub so the email can link to
+    // tappable, savable images. Best-effort: failures here must NOT block the
+    // submission JSON push or the Zapier webhook.
+    let photoUrls = {};
+    try {
+      photoUrls = await uploadPhotosToGitHub(data);
+    } catch (hostErr) {
+      console.warn("Photo hosting failed (continuing without hosted URLs):", hostErr);
+      photoUrls = {};
+    }
+    data.photoUrls = photoUrls;
 
     try {
       if (CONFIG.GITHUB_TOKEN) {
@@ -963,6 +971,78 @@
     return res.json();
   }
 
+  /* ============================================================
+   * PHOTO HOSTING
+   * Upload each submitted photo to the GitHub repo as a real .jpg file so
+   * the Zapier email can link to a tappable / savable image. We PUT to the
+   * Contents API (same pattern as pushToGitHub), handling the "file already
+   * exists" case by fetching the existing sha first. All uploads run with
+   * Promise.allSettled so one failure can't block the others. Returns a map
+   * of photoId -> public raw.githubusercontent.com URL for successful uploads.
+   * ============================================================ */
+  async function uploadPhotosToGitHub(data) {
+    if (!CONFIG.GITHUB_TOKEN) return {};
+    const photos = data.photos || {};
+    const ids = Object.keys(photos).filter(id => photos[id]);
+    if (!ids.length) return {};
+
+    const slug = slugify(data.store);
+    const folder = `${CONFIG.PHOTOS_DIR}/${data.date}-${slug}`;
+    // Encode each path segment for the raw URL (folder may contain the date +
+    // store slug; segments are already URL-safe but encode defensively).
+    const rawBase = `https://raw.githubusercontent.com/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/${CONFIG.GITHUB_BRANCH}/` +
+      folder.split("/").map(encodeURIComponent).join("/");
+
+    async function uploadOne(id) {
+      const dataUrl = photos[id];
+      // Strip the "data:image/jpeg;base64," prefix to get raw base64 bytes.
+      const base64 = dataUrl.split(",")[1];
+      if (!base64) throw new Error("no base64 for " + id);
+
+      const path = `${folder}/${id}.jpg`;
+      const apiBase = `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`;
+
+      // If the file already exists (re-submission), grab its sha so the PUT updates it.
+      let sha;
+      try {
+        const head = await fetch(apiBase + "?ref=" + encodeURIComponent(CONFIG.GITHUB_BRANCH), {
+          headers: { Authorization: "token " + CONFIG.GITHUB_TOKEN, Accept: "application/vnd.github+json" }
+        });
+        if (head.ok) sha = (await head.json()).sha;
+      } catch {}
+
+      const body = {
+        message: `Monday Ops photo: ${data.store} ${data.date} ${id}`,
+        content: base64,
+        branch: CONFIG.GITHUB_BRANCH
+      };
+      if (sha) body.sha = sha;
+
+      const res = await fetch(apiBase, {
+        method: "PUT",
+        headers: {
+          Authorization: "token " + CONFIG.GITHUB_TOKEN,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GitHub ${res.status}: ${text.slice(0, 200)}`);
+      }
+      return `${rawBase}/${encodeURIComponent(id)}.jpg`;
+    }
+
+    const results = await Promise.allSettled(ids.map(id => uploadOne(id)));
+    const photoUrls = {};
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value) photoUrls[ids[i]] = r.value;
+      else if (r.status === "rejected") console.warn("Photo upload failed for", ids[i], r.reason);
+    });
+    return photoUrls;
+  }
+
   // Always-CC'd email for ops/leadership visibility.
   const OPS_CC_EMAIL = "jeffbilbrey@blufoxmobile.com";
 
@@ -973,11 +1053,6 @@
     const facilitiesPhotoCount = Object.keys(OPTIONAL_PHOTOS).filter(id => data.photos?.[id]).length;
     const hasNotes = !!(data.notes && data.notes.trim());
     const hasFacilitiesRequest = hasNotes || facilitiesPhotoCount > 0;
-
-    // Uniforms for new hires: a "Yes" means the manager needs shirts ordered.
-    // This is NOT a "missed item" — it's a separate request surfaced to the ASM.
-    const uniformsNeeded = ans.uniformsNeeded || "";
-    const needsUniforms = uniformsNeeded === "Yes";
 
     // Photos are passed inline as base64 data URLs — same pattern the DM Visit
     // Guide Zap uses to embed photos in the HTML email. Order matters: required
@@ -991,11 +1066,218 @@
       if (photos[k]) photoBlock[k] = photos[k];
     }
 
+    // Hosted photo URLs (id -> public raw.githubusercontent.com URL). Built at
+    // submit time by uploadPhotosToGitHub; only successful uploads are present.
+    const photoUrls = data.photoUrls || {};
+
     // Recipient list for the Send Email step. Filter empties so Outlook doesn't
-    // reject the message because of a blank address. The ASM is CC'd on every
-    // submission so they always see the checklist (incl. the uniform request).
+    // reject the message because of a blank address.
     const toEmails = [data.email].filter(Boolean).join(", ");
     const ccEmails = [data.asmEmail, data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
+
+    // Prebuilt mobile-friendly HTML listing each hosted photo as a large,
+    // tappable block: a thumbnail linking to the full image plus an explicit
+    // "Open / save" text link. Required photos first, then optional. Only
+    // photos that were successfully hosted (have a URL) are included.
+    const photoLabelMap = { ...REQUIRED_PHOTOS, ...OPTIONAL_PHOTOS };
+    const orderedPhotoIds = [...Object.keys(REQUIRED_PHOTOS), ...Object.keys(OPTIONAL_PHOTOS)];
+    let photosHtml = "";
+    for (const id of orderedPhotoIds) {
+      const url = photoUrls[id];
+      if (!url) continue;
+      const label = photoLabelMap[id] || id;
+      photosHtml +=
+        `<div style="margin:0 0 16px">` +
+          `<div style="font-weight:600;margin-bottom:4px">${label}</div>` +
+          `<a href="${url}" target="_blank" rel="noopener">` +
+            `<img src="${url}" alt="${label}" style="max-width:280px;width:100%;border-radius:8px;border:1px solid #ccc">` +
+          `</a>` +
+          `<div style="margin-top:4px">` +
+            `<a href="${url}" target="_blank" rel="noopener" style="font-size:15px;font-weight:600">📷 Open / save full image →</a>` +
+          `</div>` +
+        `</div>`;
+    }
+
+    // ============================================================
+    // EMAIL BUILDERS (moved from the Zapier "Code by Zapier" step into the
+    // form so the Code step can be removed). These produce complete, polished,
+    // mobile-first HTML email documents using inline styles only. All dynamic
+    // text is HTML-escaped via the existing escapeHtml(). Photos are sent as
+    // real attachments by Zapier, so we only list which ones are attached.
+    // ============================================================
+    const STORE = data.store || "";
+    const DATE = data.date || "";
+    const MANAGER = data.name || "";
+    const NOTES = data.notes || "";
+    const miss = missedItems.length;
+
+    // Convert plain-text notes into HTML-safe text that preserves line breaks.
+    function notesToHtml(s) {
+      return escapeHtml(s).replace(/\r\n|\r|\n/g, "<br>");
+    }
+
+    // A green "Yes" / red "No" status pill.
+    function statusPill(val) {
+      const yes = val === "Yes";
+      const bg = yes ? "#dcfce7" : "#fee2e2";
+      const fg = yes ? "#166534" : "#991b1b";
+      const mark = yes ? "&#10003;" : "&#10007;";
+      return `<span style="display:inline-block;padding:3px 12px;border-radius:999px;` +
+        `background:${bg};color:${fg};font-weight:700;font-size:13px;white-space:nowrap">` +
+        `${mark} ${escapeHtml(val || "—")}</span>`;
+    }
+
+    // One row in the checklist list: label on the left, pill on the right.
+    function checklistRow(label, val) {
+      return `<tr>` +
+        `<td style="padding:10px 0;border-bottom:1px solid #eee;font-size:15px;color:#1a1a1a">${escapeHtml(label)}</td>` +
+        `<td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right">${statusPill(val)}</td>` +
+        `</tr>`;
+    }
+
+    // Which required photos are attached to THIS email (present in photoUrls).
+    const attachedRequiredLabels = Object.keys(REQUIRED_PHOTOS)
+      .filter(id => photoUrls[id])
+      .map(id => REQUIRED_PHOTOS[id]);
+    // Which facility photos are attached (present in photoUrls).
+    const attachedFacilityLabels = Object.keys(OPTIONAL_PHOTOS)
+      .filter(id => photoUrls[id])
+      .map(id => OPTIONAL_PHOTOS[id]);
+
+    // Build the main notification email (full <html> document string).
+    function buildEmailHtml() {
+      const statusBg = miss > 0 ? "#fff7ed" : "#f0fdf4";
+      const statusBorder = miss > 0 ? "#ff5a1f" : "#22c55e";
+      const statusText = miss > 0
+        ? `&#9888;&#65039; ${miss} item${miss === 1 ? "" : "s"} need attention`
+        : `&#9989; All checklist items complete`;
+
+      let rows = "";
+      for (const [key, label] of Object.entries(ANSWER_LABELS)) {
+        rows += checklistRow(label, ans[key]);
+      }
+
+      // Uniforms — informational, NOT a pass/fail item.
+      const uniforms = ans.uniformsNeeded || "";
+      let uniformsLine;
+      if (uniforms === "Yes") {
+        uniformsLine =
+          `<div style="margin:0 0 4px;font-weight:700;color:#1a1a1a;font-size:15px">Uniforms for new hires: Yes</div>` +
+          `<div style="font-size:14px;color:#555">FYI &mdash; order new shirts here: ` +
+          `<a href="https://blufoxmobile.github.io/Uniform-Order-Form/" style="color:#ff5a1f;font-weight:600">Blufox Mobile Uniform Order Form</a></div>`;
+      } else {
+        uniformsLine =
+          `<div style="font-weight:600;color:#1a1a1a;font-size:15px">Uniforms for new hires: ${escapeHtml(uniforms || "No")}</div>`;
+      }
+
+      // Needs-attention section (only when there are misses).
+      let attentionBlock = "";
+      if (miss > 0) {
+        const items = missedItems.map(k =>
+          `<li style="margin:4px 0;color:#991b1b;font-weight:600">${escapeHtml(ANSWER_LABELS[k])}</li>`
+        ).join("");
+        attentionBlock =
+          `<div style="margin:20px 0 0;padding:14px 16px;background:#fef2f2;border-left:4px solid #ef4444;border-radius:8px">` +
+            `<div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:6px">&#9888;&#65039; Needs attention</div>` +
+            `<ul style="margin:0;padding-left:20px">${items}</ul>` +
+          `</div>`;
+      }
+
+      // Facilities / Ops notes section (only when notes present).
+      let notesBlock = "";
+      if (NOTES && NOTES.trim()) {
+        notesBlock =
+          `<div style="margin:20px 0 0;padding:14px 16px;background:#f8fafc;border-left:4px solid #ff5a1f;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:6px">Facilities / Ops notes</div>` +
+            `<div style="font-size:14px;color:#333;line-height:1.5">${notesToHtml(NOTES)}</div>` +
+          `</div>`;
+      }
+
+      // Photos attached note (required-set photos present in photoUrls).
+      let photosNote = "";
+      if (attachedRequiredLabels.length) {
+        photosNote =
+          `<div style="margin:20px 0 0;font-size:13px;color:#555">` +
+            `&#128206; Attached: ${escapeHtml(attachedRequiredLabels.join(", "))}.` +
+          `</div>`;
+      }
+
+      return `<!DOCTYPE html><html><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width,initial-scale=1.0"></head>` +
+        `<body style="margin:0;padding:0;background:#f4f4f5;` +
+        `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">` +
+        `<div style="max-width:600px;margin:0 auto;padding:16px">` +
+          `<div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">` +
+            `<div style="background:#1a1a1a;padding:20px 24px">` +
+              `<div style="color:#ff5a1f;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Monday Ops Checklist</div>` +
+              `<div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:4px">${escapeHtml(STORE)}</div>` +
+              `<div style="color:#b8b8b8;font-size:14px;margin-top:4px">${escapeHtml(DATE)} &nbsp;&bull;&nbsp; Submitted by ${escapeHtml(MANAGER)}</div>` +
+            `</div>` +
+            `<div style="padding:24px">` +
+              `<div style="padding:12px 16px;border-radius:8px;background:${statusBg};border:1px solid ${statusBorder};` +
+                `font-weight:700;font-size:15px;color:#1a1a1a">${statusText}</div>` +
+              `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-collapse:collapse">` +
+                `${rows}` +
+              `</table>` +
+              `<div style="margin:20px 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+                `${uniformsLine}` +
+              `</div>` +
+              `${attentionBlock}` +
+              `${notesBlock}` +
+              `${photosNote}` +
+            `</div>` +
+            `<div style="padding:16px 24px;background:#fafafa;border-top:1px solid #eee;text-align:center;color:#999;font-size:12px">` +
+              `Blufox Mobile &mdash; Monday Ops` +
+            `</div>` +
+          `</div>` +
+        `</div></body></html>`;
+    }
+
+    // Build the facilities-focused email (only meaningful when there's a request).
+    function buildFacilitiesEmailHtml() {
+      if (!hasFacilitiesRequest) return "";
+      let notesBlock = "";
+      if (NOTES && NOTES.trim()) {
+        notesBlock =
+          `<div style="margin:0 0 16px;padding:14px 16px;background:#f8fafc;border-left:4px solid #ff5a1f;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:6px">Facilities / Ops notes</div>` +
+            `<div style="font-size:14px;color:#333;line-height:1.5">${notesToHtml(NOTES)}</div>` +
+          `</div>`;
+      }
+      let photosNote = "";
+      if (attachedFacilityLabels.length) {
+        photosNote =
+          `<div style="font-size:13px;color:#555">` +
+            `&#128206; Attached: ${escapeHtml(attachedFacilityLabels.join(", "))}.` +
+          `</div>`;
+      }
+      return `<!DOCTYPE html><html><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width,initial-scale=1.0"></head>` +
+        `<body style="margin:0;padding:0;background:#f4f4f5;` +
+        `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">` +
+        `<div style="max-width:600px;margin:0 auto;padding:16px">` +
+          `<div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">` +
+            `<div style="background:#991b1b;padding:20px 24px">` +
+              `<div style="color:#fecaca;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">&#128680; Facilities Issue Report</div>` +
+              `<div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:4px">${escapeHtml(STORE)}</div>` +
+              `<div style="color:#fca5a5;font-size:14px;margin-top:4px">${escapeHtml(DATE)} &nbsp;&bull;&nbsp; Submitted by ${escapeHtml(MANAGER)}</div>` +
+            `</div>` +
+            `<div style="padding:24px">` +
+              `${notesBlock}` +
+              `${photosNote}` +
+            `</div>` +
+            `<div style="padding:16px 24px;background:#fafafa;border-top:1px solid #eee;text-align:center;color:#999;font-size:12px">` +
+              `Blufox Mobile &mdash; Monday Ops` +
+            `</div>` +
+          `</div>` +
+        `</div></body></html>`;
+    }
+
+    const emailHtml = buildEmailHtml();
+    const subject = `${miss > 0 ? "⚠️" : "✅"} Monday Ops — ${STORE} — ${DATE}`;
+    const facilitiesNeeded = hasFacilitiesRequest ? "yes" : "no";
+    const facilitiesSubject = `🚨 Facilities Issue Report — ${STORE} (${DATE})`;
+    const facilitiesEmailHtml = buildFacilitiesEmailHtml();
 
     // Zapier's Catch Hook flattens nested objects, so we ALSO send a single
     // JSON-stringified copy of the full payload. The Code step parses it back
@@ -1017,20 +1299,29 @@
       scheduleWeeks:  ans.scheduleWeeks  || "",
       cashFloat:      ans.cashFloat      || "",
       returnsShipped: ans.returnsShipped || "",
-      // Uniforms-for-new-hires request (separate from the pass/fail items):
-      uniformsNeeded: uniformsNeeded,
-      uniformOrderLink: needsUniforms ? CONFIG.UNIFORM_ORDER_URL : "",
       facilitiesPhotoCount,
       // Convenience fields for the Zap's Send Email step
       toEmails,
       ccEmails,
       opsEmail: OPS_CC_EMAIL,
+      // Fully-built emails (the form now does what the "Code by Zapier" step did).
+      // The Zap's Send Email step can use these directly.
+      subject,
+      emailHtml,
+      facilitiesNeeded,
+      facilitiesSubject,
+      facilitiesEmailHtml,
+      // Uniforms answer (informational; NOT a pass/fail / missed item).
+      uniformsNeeded: ans.uniformsNeeded || "",
       // Human-friendly labels keyed by answer id so the email template can
       // iterate without re-hardcoding strings.
       answerLabels: ANSWER_LABELS,
       photoLabels: { ...REQUIRED_PHOTOS, ...OPTIONAL_PHOTOS },
       // Inline photos (base64 data URLs). Mirrors the DM Visit Guide pattern.
       photos: photoBlock,
+      // Hosted photo URLs (id -> raw.githubusercontent.com URL) + prebuilt HTML.
+      photoUrls,
+      photosHtml,
       flags: {
         hasMisses: missedItems.length > 0,
         missCount: missedItems.length,
@@ -1038,8 +1329,7 @@
         missedItemsHuman: missedItems.map(k => ANSWER_LABELS[k]),
         hasFacilitiesRequest,
         hasFacilitiesNotes: hasNotes,
-        hasFacilitiesPhotos: facilitiesPhotoCount > 0,
-        needsUniforms
+        hasFacilitiesPhotos: facilitiesPhotoCount > 0
       }
     };
     // Also flatten photo data into top-level fields so Zapier's Catch Hook
@@ -1058,6 +1348,20 @@
     payload.photoFacility2  = ph.facility2 || "";
     payload.photoFacility3  = ph.facility3 || "";
     payload.photoFacility4  = ph.facility4 || "";
+    // Flattened hosted-URL fields for easy Zapier picking. Empty string if the
+    // photo wasn't uploaded or hosting failed for that one.
+    const pu = payload.photoUrls || {};
+    payload.photoBrinksUrl    = pu.brinks    || "";
+    payload.photoWeek1Url     = pu.week1     || "";
+    payload.photoWeek2Url     = pu.week2     || "";
+    payload.photoWeek3Url     = pu.week3     || "";
+    payload.photoWeek4Url     = pu.week4     || "";
+    payload.photoUpgradesUrl  = pu.upgrades  || "";
+    payload.photoTradeinsUrl  = pu.tradeins  || "";
+    payload.photoFacility1Url = pu.facility1 || "";
+    payload.photoFacility2Url = pu.facility2 || "";
+    payload.photoFacility3Url = pu.facility3 || "";
+    payload.photoFacility4Url = pu.facility4 || "";
     // Also flatten missedItemsHuman so the email template can grab it directly.
     payload.missedItems = payload.flags?.missedItemsHuman || [];
     // NOTE: previously included `payloadJson: JSON.stringify(payload)` here, but
