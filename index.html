@@ -1193,12 +1193,29 @@
           `</div>`;
       }
 
-      // Photos attached note (required-set photos present in photoUrls).
+      // Photos section: a labeled, mobile-friendly tappable block per required
+      // photo that was successfully hosted (thumbnail + explicit text link).
+      // Only rendered when at least one required photo has a hosted URL.
       let photosNote = "";
-      if (attachedRequiredLabels.length) {
+      let photoBlocks = "";
+      for (const id of Object.keys(REQUIRED_PHOTOS)) {
+        const url = photoUrls[id];
+        if (!url) continue;
+        const label = REQUIRED_PHOTOS[id];
+        photoBlocks +=
+          `<div style="margin:0 0 14px">` +
+            `<div style="font-weight:600;font-size:14px;color:#1a1a1a;margin-bottom:4px">${escapeHtml(label)}</div>` +
+            `<a href="${url}" target="_blank" rel="noopener">` +
+              `<img src="${url}" alt="${escapeHtml(label)}" style="display:block;max-width:100%;width:260px;border-radius:8px;border:1px solid #ccc">` +
+            `</a>` +
+            `<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:15px;font-weight:600;color:#ff5a1f">&#128247; Open / save full photo &rarr;</a>` +
+          `</div>`;
+      }
+      if (photoBlocks) {
         photosNote =
-          `<div style="margin:20px 0 0;font-size:13px;color:#555">` +
-            `&#128206; Attached: ${escapeHtml(attachedRequiredLabels.join(", "))}.` +
+          `<div style="margin:20px 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:12px">Photos</div>` +
+            `${photoBlocks}` +
           `</div>`;
       }
 
@@ -1244,11 +1261,34 @@
             `<div style="font-size:14px;color:#333;line-height:1.5">${notesToHtml(NOTES)}</div>` +
           `</div>`;
       }
+      // Facilities photos section: labeled tappable block per hosted facility
+      // photo (thumbnail + explicit text link). Labels: "Facilities Photo 1..4".
+      const FACILITY_EMAIL_LABELS = {
+        facility1: "Facilities Photo 1",
+        facility2: "Facilities Photo 2",
+        facility3: "Facilities Photo 3",
+        facility4: "Facilities Photo 4"
+      };
       let photosNote = "";
-      if (attachedFacilityLabels.length) {
+      let photoBlocks = "";
+      for (const id of Object.keys(FACILITY_EMAIL_LABELS)) {
+        const url = photoUrls[id];
+        if (!url) continue;
+        const label = FACILITY_EMAIL_LABELS[id];
+        photoBlocks +=
+          `<div style="margin:0 0 14px">` +
+            `<div style="font-weight:600;font-size:14px;color:#1a1a1a;margin-bottom:4px">${escapeHtml(label)}</div>` +
+            `<a href="${url}" target="_blank" rel="noopener">` +
+              `<img src="${url}" alt="${escapeHtml(label)}" style="display:block;max-width:100%;width:260px;border-radius:8px;border:1px solid #ccc">` +
+            `</a>` +
+            `<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:15px;font-weight:600;color:#ff5a1f">&#128247; Open / save full photo &rarr;</a>` +
+          `</div>`;
+      }
+      if (photoBlocks) {
         photosNote =
-          `<div style="font-size:13px;color:#555">` +
-            `&#128206; Attached: ${escapeHtml(attachedFacilityLabels.join(", "))}.` +
+          `<div style="margin:0 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:12px">Photos</div>` +
+            `${photoBlocks}` +
           `</div>`;
       }
       return `<!DOCTYPE html><html><head><meta charset="utf-8">` +
