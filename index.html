@@ -524,16 +524,19 @@
 
 <script>
   /* ============================================================
-   * EMBEDDED GITHUB TOKEN
-   * Same XOR-encoded scheme used by Admin-Panel-Directory and crm.html.
-   * To rotate the token, regenerate _TOKEN_ENCODED with the SAME _TOKEN_KEY
-   * ("blufox") in all three files using:
-   *   const t='YOUR_TOKEN'; const k='blufox';
-   *   JSON.stringify([...t].map((c,i)=>c.charCodeAt(0)^k.charCodeAt(i%k.length)))
+   * UPLOAD PROXY — no GitHub token lives in this page.
+   * All GitHub writes go through the Blufox upload proxy, a Google Apps
+   * Script web app (github-upload-proxy.gs in the Daily-Sales-Report repo).
+   * The GitHub token lives ONLY in the proxy's Script Properties.
+   * DEPLOYMENT: script.google.com -> New project -> paste
+   *   github-upload-proxy.gs -> Script Properties: GITHUB_TOKEN + UPLOAD_KEY
+   *   -> Deploy -> Web app (Execute as: Me / Who has access: Anyone)
+   *   -> paste the /exec URL below.
    * ============================================================ */
-  const _TOKEN_ENCODED = [5,5,1,14,26,26,61,28,20,18,48,73,83,47,52,46,45,76,85,61,69,14,93,0,51,59,66,53,90,48,53,35,22,57,32,10,17,88,71,86,1,46,16,58,3,15,29,32,59,26,1,50,34,21,17,5,48,55,31,11,49,10,61,62,45,8,49,30,58,21,43,8,27,57,24,28,31,34,42,63,58,85,46,63,39,4,23,52,89,57,48,15,63];
-  const _TOKEN_KEY = 'blufox';
-  const EMBEDDED_TOKEN = _TOKEN_ENCODED.map((c,i)=>String.fromCharCode(c ^ _TOKEN_KEY.charCodeAt(i % _TOKEN_KEY.length))).join('');
+  const PROXY_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+  // Upload key (the proxy passphrase) — shared across the Blufox pages,
+  // kept per-browser in localStorage ('blufoxUploadKey').
+  const UPLOAD_KEY_STORAGE = 'blufoxUploadKey';
 
   /* ============================================================
    * CONFIGURATION — edit these values as needed
@@ -553,10 +556,8 @@
     // The Zapier email links to the raw.githubusercontent.com URLs under this dir.
     PHOTOS_DIR: "data/monday-ops-photos",
 
-    // GitHub Personal Access Token with `contents: write` on the repo above.
-    // Uses the embedded token from the shared XOR-encoded array above so submissions
-    // upload directly to GitHub (no local JSON download fallback for managers).
-    GITHUB_TOKEN: EMBEDDED_TOKEN,
+    // NOTE: GitHub writes go through the Blufox upload proxy (PROXY_URL
+    // above) — no GitHub token appears anywhere in this page.
 
     // Zapier "Catch Hook" webhook URL. Every submission posts here so the
     // "Monday Ops Email" Zap can build and send the HTML email (with photos
@@ -891,15 +892,15 @@
     data.photoUrls = photoUrls;
 
     try {
-      if (CONFIG.GITHUB_TOKEN) {
+      if (proxyConfigured()) {
         await pushToGitHub(data);
         showStatus("success", "✓ Checklist submitted successfully. You can close this page.");
       } else {
         downloadJSON(data);
-        showStatus("success", "✓ No GitHub token configured. Checklist saved as a local JSON file — send it to your DM.");
+        showStatus("success", "✓ Upload proxy not configured. Checklist saved as a local JSON file — send it to your DM.");
       }
       notifyZapier(data).catch(e => console.warn("Zapier webhook failed:", e));
-      if (CONFIG.GITHUB_TOKEN) resetForm();
+      if (proxyConfigured()) resetForm();
     } catch (err) {
       console.error(err);
       showStatus("error", "Upload failed: " + err.message + " — saved locally instead.");
@@ -935,53 +936,100 @@
     URL.revokeObjectURL(a.href);
   }
 
+  function proxyConfigured() {
+    return !!PROXY_URL && PROXY_URL.indexOf('PASTE_') !== 0;
+  }
+
+  /* ---- WRITE TRANSPORT ------------------------------------------------
+     Every GitHub write goes through the Apps Script proxy. Payload contract
+     (must match github-upload-proxy.gs doPost):
+       { key: <upload key>, files: [{ repo, path, contentBase64, message }] }
+     The body is POSTed with Content-Type text/plain so the browser skips
+     the CORS preflight (Apps Script web apps don't answer OPTIONS); the
+     proxy parses e.postData.contents as JSON either way. fetch() follows
+     the script.google.com 302 redirect automatically. ------------------ */
+  function getUploadKey(forcePrompt) {
+    let key = localStorage.getItem(UPLOAD_KEY_STORAGE);
+    if (!key || forcePrompt) {
+      key = prompt('Enter the Blufox upload key (asked once per browser):');
+      if (key && key.trim()) {
+        key = key.trim();
+        localStorage.setItem(UPLOAD_KEY_STORAGE, key);
+      } else {
+        key = null;
+      }
+    }
+    return key;
+  }
+
+  function clearUploadKey() {
+    localStorage.removeItem(UPLOAD_KEY_STORAGE);
+  }
+
+  async function proxyPost(payload) {
+    if (!PROXY_URL || PROXY_URL.indexOf('PASTE_') === 0) {
+      throw new Error('Upload proxy not configured — deploy github-upload-proxy.gs and set PROXY_URL at the top of this page.');
+    }
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
+    return await res.json();
+  }
+
+  // Collapse the proxy's per-repo / per-file results into one error string.
+  function proxyErrorText(resp) {
+    const errs = [];
+    (resp.results || []).forEach(r => {
+      if (Array.isArray(r.files) && r.files.length) {
+        r.files.forEach(f => { if (!f.ok) errs.push(r.repo + '/' + f.path + ' — ' + (f.error || 'failed')); });
+      } else if (!r.ok) {
+        errs.push(r.repo + ' — ' + (r.error || 'failed'));
+      }
+    });
+    return errs.length ? errs.join('; ') : (resp.error || 'Upload failed');
+  }
+
+  async function proxyUpload(files) {
+    let key = getUploadKey(false);
+    if (!key) throw new Error('Upload key required — reload and enter the key when prompted.');
+    let resp = await proxyPost({ key: key, files: files });
+    if (!resp.ok && /bad key|unauthorized/i.test(String(resp.error || ''))) {
+      // Stored key was wrong — clear it and re-prompt exactly once.
+      clearUploadKey();
+      key = getUploadKey(true);
+      if (!key) throw new Error('Upload key required');
+      resp = await proxyPost({ key: key, files: files });
+    }
+    if (!resp.ok) throw new Error(proxyErrorText(resp));
+    return resp;
+  }
+
   async function pushToGitHub(data) {
     const filename = `${data.date}-${slugify(data.store)}.json`;
     const path = `${CONFIG.SUBMISSIONS_DIR}/${filename}`;
-    const apiBase = `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`;
-
-    let sha;
-    try {
-      const head = await fetch(apiBase + "?ref=" + encodeURIComponent(CONFIG.GITHUB_BRANCH), {
-        headers: { Authorization: "token " + CONFIG.GITHUB_TOKEN, Accept: "application/vnd.github+json" }
-      });
-      if (head.ok) sha = (await head.json()).sha;
-    } catch {}
-
-    const body = {
-      message: `Monday Ops checklist: ${data.store} ${data.date}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-      branch: CONFIG.GITHUB_BRANCH
-    };
-    if (sha) body.sha = sha;
-
-    const res = await fetch(apiBase, {
-      method: "PUT",
-      headers: {
-        Authorization: "token " + CONFIG.GITHUB_TOKEN,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`GitHub ${res.status}: ${text.slice(0, 200)}`);
-    }
-    return res.json();
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    return proxyUpload([{
+      repo: CONFIG.GITHUB_REPO,
+      path: path,
+      contentBase64: contentBase64,
+      message: `Monday Ops checklist: ${data.store} ${data.date}`
+    }]);
   }
 
   /* ============================================================
    * PHOTO HOSTING
    * Upload each submitted photo to the GitHub repo as a real .jpg file so
-   * the Zapier email can link to a tappable / savable image. We PUT to the
-   * Contents API (same pattern as pushToGitHub), handling the "file already
-   * exists" case by fetching the existing sha first. All uploads run with
-   * Promise.allSettled so one failure can't block the others. Returns a map
-   * of photoId -> public raw.githubusercontent.com URL for successful uploads.
+   * the Zapier email can link to a tappable / savable image. All photos go
+   * up in ONE proxy call (one commit); the proxy's git-data flow handles
+   * create-vs-update automatically, so no sha juggling is needed.
+   * Best-effort: the caller already treats a failure here as non-blocking.
+   * Returns a map of photoId -> public raw.githubusercontent.com URL.
    * ============================================================ */
   async function uploadPhotosToGitHub(data) {
-    if (!CONFIG.GITHUB_TOKEN) return {};
+    if (!proxyConfigured()) return {};
     const photos = data.photos || {};
     const ids = Object.keys(photos).filter(id => photos[id]);
     if (!ids.length) return {};
@@ -993,53 +1041,25 @@
     const rawBase = `https://raw.githubusercontent.com/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/${CONFIG.GITHUB_BRANCH}/` +
       folder.split("/").map(encodeURIComponent).join("/");
 
-    async function uploadOne(id) {
-      const dataUrl = photos[id];
+    const files = [];
+    const okIds = [];
+    for (const id of ids) {
       // Strip the "data:image/jpeg;base64," prefix to get raw base64 bytes.
-      const base64 = dataUrl.split(",")[1];
-      if (!base64) throw new Error("no base64 for " + id);
-
-      const path = `${folder}/${id}.jpg`;
-      const apiBase = `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`;
-
-      // If the file already exists (re-submission), grab its sha so the PUT updates it.
-      let sha;
-      try {
-        const head = await fetch(apiBase + "?ref=" + encodeURIComponent(CONFIG.GITHUB_BRANCH), {
-          headers: { Authorization: "token " + CONFIG.GITHUB_TOKEN, Accept: "application/vnd.github+json" }
-        });
-        if (head.ok) sha = (await head.json()).sha;
-      } catch {}
-
-      const body = {
-        message: `Monday Ops photo: ${data.store} ${data.date} ${id}`,
-        content: base64,
-        branch: CONFIG.GITHUB_BRANCH
-      };
-      if (sha) body.sha = sha;
-
-      const res = await fetch(apiBase, {
-        method: "PUT",
-        headers: {
-          Authorization: "token " + CONFIG.GITHUB_TOKEN,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+      const base64 = String(photos[id]).split(",")[1];
+      if (!base64) { console.warn("no base64 for", id); continue; }
+      files.push({
+        repo: CONFIG.GITHUB_REPO,
+        path: `${folder}/${id}.jpg`,
+        contentBase64: base64,
+        message: `Monday Ops photos: ${data.store} ${data.date}`
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`GitHub ${res.status}: ${text.slice(0, 200)}`);
-      }
-      return `${rawBase}/${encodeURIComponent(id)}.jpg`;
+      okIds.push(id);
     }
+    if (!files.length) return {};
 
-    const results = await Promise.allSettled(ids.map(id => uploadOne(id)));
+    await proxyUpload(files);
     const photoUrls = {};
-    results.forEach((r, i) => {
-      if (r.status === "fulfilled" && r.value) photoUrls[ids[i]] = r.value;
-      else if (r.status === "rejected") console.warn("Photo upload failed for", ids[i], r.reason);
-    });
+    okIds.forEach(id => { photoUrls[id] = `${rawBase}/${encodeURIComponent(id)}.jpg`; });
     return photoUrls;
   }
 
