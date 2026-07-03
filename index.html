@@ -941,9 +941,19 @@
     });
   });
 
-  // Mark hero links as visited when tapped
+  // Track which hero links were actually opened — shown on the review step,
+  // saved in the submission record, and reported in the email.
+  const LINK_LABELS = {
+    linkDeposit: "Deposit Bag Order Form",
+    linkPci:     "PCI Checklist",
+    linkUniform: "Uniform Order Form",
+    linkFloat:   "Cash Float Tracker"
+  };
+  const linkClicks = { linkDeposit: false, linkPci: false, linkUniform: false, linkFloat: false };
+
   document.querySelectorAll(".link-hero").forEach(a => {
     a.addEventListener("click", () => {
+      if (a.id in linkClicks) linkClicks[a.id] = true;
       a.classList.add("visited");
       a.classList.remove("urgent");
       const go = a.querySelector(".go");
@@ -1049,6 +1059,10 @@
     html += `<div class="review-row"><span class="lbl">📸 Required photos</span><b>${photoCount} / 7</b></div>`;
     if (facCount) html += `<div class="review-row"><span class="lbl">🛠 Facilities photos</span><b>${facCount}</b></div>`;
     if ($("notes").value.trim()) html += `<div class="review-row"><span class="lbl">📝 Facilities notes</span><b>Included</b></div>`;
+    const linkPill = v => v ? '<span class="pill yes">✓ Opened</span>' : '<span class="pill n">Not opened</span>';
+    for (const [id, label] of Object.entries(LINK_LABELS)) {
+      html += `<div class="review-row"><span class="lbl">🔗 ${label}</span>${linkPill(linkClicks[id])}</div>`;
+    }
     $("reviewBody").innerHTML = html;
   }
 
@@ -1184,6 +1198,12 @@
         returnsShipped: f.returns.value
       },
       notes: $("notes").value,
+      linksOpened: {
+        depositOrderForm: linkClicks.linkDeposit,
+        pciChecklist:     linkClicks.linkPci,
+        uniformOrderForm: linkClicks.linkUniform,
+        cashFloatTracker: linkClicks.linkFloat
+      },
       photos
     };
 
@@ -1293,6 +1313,30 @@
           `<div style="font-weight:600;color:#1a1a1a;font-size:15px">Uniforms for new hires: ${escapeHtml(uniforms || "No")}</div>`;
       }
 
+      // Links-opened report: green pill if the manager tapped the link.
+      const lo = data.linksOpened || {};
+      const LINK_EMAIL_ROWS = [
+        ["Deposit Bag Order Form", lo.depositOrderForm],
+        ["PCI Checklist",          lo.pciChecklist],
+        ["Uniform Order Form",     lo.uniformOrderForm],
+        ["Cash Float Tracker",     lo.cashFloatTracker]
+      ];
+      let linkRows = "";
+      for (const [label, opened] of LINK_EMAIL_ROWS) {
+        const pill = opened
+          ? `<span style="display:inline-block;padding:3px 12px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px;white-space:nowrap">&#10003; Opened</span>`
+          : `<span style="display:inline-block;padding:3px 12px;border-radius:999px;background:#f3f4f6;color:#6b7280;font-weight:700;font-size:13px;white-space:nowrap">Not opened</span>`;
+        linkRows += `<tr>` +
+          `<td style="padding:8px 0;border-bottom:1px solid #eee;font-size:14px;color:#1a1a1a">&#128279; ${escapeHtml(label)}</td>` +
+          `<td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right">${pill}</td>` +
+          `</tr>`;
+      }
+      const linksBlock =
+        `<div style="margin:20px 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+          `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:4px">Links opened during checklist</div>` +
+          `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${linkRows}</table>` +
+        `</div>`;
+
       let attentionBlock = "";
       if (miss > 0) {
         const items = missedItems.map(k =>
@@ -1348,6 +1392,7 @@
               `<div style="margin:20px 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
                 `${uniformsLine}` +
               `</div>` +
+              `${linksBlock}` +
               `${attentionBlock}` +
               `${notesBlock}` +
               `${photosNote}` +
@@ -1428,6 +1473,11 @@
       returnsShipped: ans.returnsShipped || "",
       uniformsNeeded: ans.uniformsNeeded || "",
       facilitiesPhotoCount,
+      linksOpened: data.linksOpened || {},
+      linkDepositOpened:   (data.linksOpened || {}).depositOrderForm ? "Yes" : "No",
+      linkPciOpened:       (data.linksOpened || {}).pciChecklist     ? "Yes" : "No",
+      linkUniformOpened:   (data.linksOpened || {}).uniformOrderForm ? "Yes" : "No",
+      linkCashFloatOpened: (data.linksOpened || {}).cashFloatTracker ? "Yes" : "No",
       toEmails,
       ccEmails,
       opsEmail: OPS_CC_EMAIL,
