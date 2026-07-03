@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- build 3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1117,48 +1116,39 @@
    * Returns photoId -> public raw URL. These URLs are what make the
    * email photos tappable + zoomable at full quality on a phone.
    * ============================================================ */
-  async function uploadPhotosToGitHub(data) {
+  function buildPhotoFiles(data) {
     const photos = data.photos || {};
     const ids = Object.keys(photos).filter(id => photos[id]);
-    if (!ids.length) return {};
     const slug = slugify(data.store);
     const folder = `${CONFIG.PHOTOS_DIR}/${data.date}-${slug}`;
     const rawBase = `https://raw.githubusercontent.com/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/${CONFIG.GITHUB_BRANCH}/` +
       folder.split("/").map(encodeURIComponent).join("/");
     const files = [];
-    const okIds = [];
+    const photoUrls = {};
+    const message = `Monday Ops checklist: ${data.store} ${data.date}`;
     for (const id of ids) {
       const base64 = String(photos[id]).split(",")[1];
       if (!base64) continue;
-      files.push({
-        repo: CONFIG.GITHUB_REPO,
-        path: `${folder}/${id}.jpg`,
-        contentBase64: base64,
-        message: `Monday Ops photos: ${data.store} ${data.date}`
-      });
-      okIds.push(id);
+      files.push({ repo: CONFIG.GITHUB_REPO, path: `${folder}/${id}.jpg`, contentBase64: base64, message });
+      photoUrls[id] = `${rawBase}/${encodeURIComponent(id)}.jpg`;
     }
-    if (!files.length) return {};
-    await proxyUpload(files);
-    const photoUrls = {};
-    okIds.forEach(id => { photoUrls[id] = `${rawBase}/${encodeURIComponent(id)}.jpg`; });
-    return photoUrls;
+    return { files, photoUrls };
   }
 
-  async function pushSubmissionToGitHub(data) {
-    // The stored JSON carries photo URLs only — never base64 — so the
-    // submissions folder stays tiny and the repo never bloats.
+  // Photos + the submission JSON go up in ONE proxy call → ONE commit.
+  // (Two commits seconds apart made the repo's Pages deploys race each other.)
+  async function pushEverythingToGitHub(data) {
+    const { files, photoUrls } = buildPhotoFiles(data);
+    data.photoUrls = photoUrls;
     const record = { ...data };
-    delete record.photos;
-    const filename = `${data.date}-${slugify(data.store)}.json`;
-    const path = `${CONFIG.SUBMISSIONS_DIR}/${filename}`;
-    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(record, null, 2))));
-    return proxyUpload([{
+    delete record.photos;   // URLs only — the stored JSON stays tiny
+    files.push({
       repo: CONFIG.GITHUB_REPO,
-      path,
-      contentBase64,
+      path: `${CONFIG.SUBMISSIONS_DIR}/${data.date}-${slugify(data.store)}.json`,
+      contentBase64: btoa(unescape(encodeURIComponent(JSON.stringify(record, null, 2)))),
       message: `Monday Ops checklist: ${data.store} ${data.date}`
-    }]);
+    });
+    await proxyUpload(files);
   }
 
   /* ============================================================
@@ -1210,15 +1200,11 @@
 
     $("overlay").classList.add("show");
     try {
-      // 1. Host the photos (this is what makes them zoomable in the email)
-      setOverlay("Uploading your photos…", "High-quality copies for your DM to review.");
-      data.photoUrls = await uploadPhotosToGitHub(data);
+      // 1. Photos + checklist record in one upload (one commit)
+      setOverlay("Uploading your checklist…", "Photos and answers, all in one go.");
+      await pushEverythingToGitHub(data);
 
-      // 2. Save the submission record
-      setOverlay("Saving your checklist…", "Almost there.");
-      await pushSubmissionToGitHub(data);
-
-      // 3. Fire the email
+      // 2. Fire the email
       setOverlay("Sending the email…", "Notifying your DM.");
       await notifyZapier(data);
 
@@ -1373,8 +1359,7 @@
           `</div>`;
       }
 
-      return `<!DOCTYPE html>
-<!-- build 3 --><html><head><meta charset="utf-8">` +
+      return `<!DOCTYPE html><html><head><meta charset="utf-8">` +
         `<meta name="viewport" content="width=device-width,initial-scale=1.0"></head>` +
         `<body style="margin:0;padding:0;background:#f4f4f5;` +
         `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">` +
@@ -1432,8 +1417,7 @@
             `${photoBlocks}` +
           `</div>`;
       }
-      return `<!DOCTYPE html>
-<!-- build 3 --><html><head><meta charset="utf-8">` +
+      return `<!DOCTYPE html><html><head><meta charset="utf-8">` +
         `<meta name="viewport" content="width=device-width,initial-scale=1.0"></head>` +
         `<body style="margin:0;padding:0;background:#f4f4f5;` +
         `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">` +
