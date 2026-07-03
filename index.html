@@ -163,7 +163,7 @@
   /* ---------- HERO LINK CARDS (the focal point) ---------- */
   .link-hero {
     position: relative; display: flex; align-items: center; gap: 14px;
-    margin-top: 16px; padding: 18px 16px;
+    margin: 4px 0 0; padding: 18px 16px;
     border-radius: 16px; text-decoration: none;
     background: linear-gradient(#ffffff, #ffffff) padding-box,
                 linear-gradient(120deg, var(--accent), #ffb347, var(--accent)) border-box;
@@ -201,6 +201,16 @@
   @keyframes urgentPulse {
     0%,100% { box-shadow: 0 6px 18px rgba(255,90,31,0.18); }
     50%     { box-shadow: 0 6px 28px rgba(255,90,31,0.5); }
+  }
+
+  .answer-label {
+    margin: 20px 0 10px; text-align: center;
+    font-size: 11.5px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .answer-label::before, .answer-label::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
   }
 
   /* ---------- Callouts ---------- */
@@ -390,10 +400,6 @@
         <div class="step-kicker">💰 Step 1 · Deposit Bags &amp; Slips</div>
         <h2>Deposit bags &amp; slips</h2>
         <p class="lead">Check your supply — you should have at least <b>two months</b> of deposit bags and deposit slips on hand.</p>
-        <div class="yesno" data-name="deposit">
-          <label data-value="Yes"><input type="radio" name="deposit" value="Yes" required>✓ Yes, stocked</label>
-          <label data-value="No"><input type="radio" name="deposit" value="No" required>✗ Running low</label>
-        </div>
         <a class="link-hero" id="linkDeposit" href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">
           <div class="ico">📦</div>
           <div class="txt">
@@ -402,6 +408,11 @@
           </div>
           <div class="go">Open <span>→</span></div>
         </a>
+        <div class="answer-label">Then answer below 👇</div>
+        <div class="yesno" data-name="deposit">
+          <label data-value="Yes"><input type="radio" name="deposit" value="Yes" required>✓ Yes, stocked</label>
+          <label data-value="No"><input type="radio" name="deposit" value="No" required>✗ Running low</label>
+        </div>
         <div class="conditional" data-for="deposit" data-show-when="No">
           You said you're running low — tap the <b>Deposit Bag Order Form</b> above and place the order <b>right now</b> before moving on.
         </div>
@@ -414,10 +425,6 @@
         <div class="step-kicker">🔒 Step 2 · PCI Checklist</div>
         <h2>PCI Checklist</h2>
         <p class="lead">Complete the weekly PCI compliance walk-through for your store.</p>
-        <div class="yesno" data-name="pci">
-          <label data-value="Yes"><input type="radio" name="pci" value="Yes" required>✓ Completed</label>
-          <label data-value="No"><input type="radio" name="pci" value="No" required>✗ Not yet</label>
-        </div>
         <a class="link-hero" id="linkPci" href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">
           <div class="ico">🔒</div>
           <div class="txt">
@@ -426,6 +433,11 @@
           </div>
           <div class="go">Open <span>→</span></div>
         </a>
+        <div class="answer-label">Then answer below 👇</div>
+        <div class="yesno" data-name="pci">
+          <label data-value="Yes"><input type="radio" name="pci" value="Yes" required>✓ Completed</label>
+          <label data-value="No"><input type="radio" name="pci" value="No" required>✗ Not yet</label>
+        </div>
         <div class="conditional" data-for="pci" data-show-when="No">
           Please open the <b>PCI Checklist</b> above and complete it now — then come back and flip your answer to Yes.
         </div>
@@ -477,14 +489,7 @@
         <div class="step-kicker">👕 Step 4 · Uniforms</div>
         <h2>Uniforms for new hires</h2>
         <p class="lead">Do you have any new hires who still need shirts?</p>
-        <div class="yesno" data-name="uniforms">
-          <label data-value="Yes"><input type="radio" name="uniforms" value="Yes" required>Yes, need shirts</label>
-          <label data-value="No"><input type="radio" name="uniforms" value="No" required>No, all set</label>
-        </div>
-        <div class="conditional info" data-for="uniforms" data-show-when="Yes" id="uniformReveal">
-          Order them now so they arrive this week 👇
-        </div>
-        <a class="link-hero" id="linkUniform" href="https://blufoxmobile.github.io/Uniform-Order-Form/" target="_blank" rel="noopener noreferrer" style="display:none">
+        <a class="link-hero" id="linkUniform" href="https://blufoxmobile.github.io/Uniform-Order-Form/" target="_blank" rel="noopener noreferrer">
           <div class="ico">👕</div>
           <div class="txt">
             <div class="t">Uniform Order Form</div>
@@ -492,6 +497,14 @@
           </div>
           <div class="go">Open <span>→</span></div>
         </a>
+        <div class="answer-label">Then answer below 👇</div>
+        <div class="yesno" data-name="uniforms">
+          <label data-value="Yes"><input type="radio" name="uniforms" value="Yes" required>Yes, need shirts</label>
+          <label data-value="No"><input type="radio" name="uniforms" value="No" required>No, all set</label>
+        </div>
+        <div class="conditional info" data-for="uniforms" data-show-when="Yes" id="uniformReveal">
+          Order them now with the <b>Uniform Order Form</b> above so shirts arrive this week ☝️
+        </div>
       </div>
     </section>
 
@@ -501,10 +514,6 @@
         <div class="step-kicker">💵 Step 5 · Cash Float Tracker</div>
         <h2>Cash Float Tracker</h2>
         <p class="lead">Count your drawer and submit this week's float.</p>
-        <div class="yesno" data-name="cashfloat">
-          <label data-value="Yes"><input type="radio" name="cashfloat" value="Yes" required>✓ Submitted</label>
-          <label data-value="No"><input type="radio" name="cashfloat" value="No" required>✗ Not yet</label>
-        </div>
         <a class="link-hero" id="linkFloat" href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">
           <div class="ico">💵</div>
           <div class="txt">
@@ -513,6 +522,11 @@
           </div>
           <div class="go">Open <span>→</span></div>
         </a>
+        <div class="answer-label">Then answer below 👇</div>
+        <div class="yesno" data-name="cashfloat">
+          <label data-value="Yes"><input type="radio" name="cashfloat" value="Yes" required>✓ Submitted</label>
+          <label data-value="No"><input type="radio" name="cashfloat" value="No" required>✗ Not yet</label>
+        </div>
         <div class="conditional" data-for="cashfloat" data-show-when="No">
           Tap the <b>Cash Float Tracker</b> above and submit it now — then flip your answer to Yes.
         </div>
@@ -916,7 +930,6 @@
         $(linkId)?.classList.toggle("urgent", selected === when);
       }
       if (name === "uniforms") {
-        $("linkUniform").style.display = selected === "Yes" ? "flex" : "none";
         $("linkUniform").classList.toggle("urgent", selected === "Yes");
       }
       updateNav();
