@@ -3,21 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blufox Monday Ops Completion Checklist</title>
+<title>Blufox Monday Ops Checklist</title>
 <style>
   :root {
-    --bg: #000;
-    --fg: #ffffff;
-    --muted: #b8b8b8;
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --fg: #111827;
+    --muted: #6b7280;
     --accent: #ff5a1f;
-    --border: #2a2a2a;
-    --field-bg: #111111;
-    --field-bg-hover: #181818;
-    --card-bg: rgba(255, 255, 255, 0.018);
-    --success: #22c55e;
-    --danger: #ef4444;
+    --accent-dark: #e64a12;
+    --accent-soft: #fff1ea;
+    --border: #e5e7eb;
+    --success: #16a34a;
+    --success-soft: #f0fdf4;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --shadow: 0 1px 3px rgba(17,24,39,0.06), 0 8px 24px rgba(17,24,39,0.07);
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -27,500 +31,627 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
-  .container {
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 32px 20px 80px;
-  }
-  .header {
-    text-align: center;
-    margin-bottom: 28px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .header img {
-    max-width: 100%;
-    height: auto;
-    max-height: 220px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-  }
-  h1 { font-size: 26px; margin: 8px 0 12px; font-weight: 700; }
-  .header p { color: var(--muted); margin: 0 auto; max-width: 640px; }
+  .container { max-width: 680px; margin: 0 auto; padding: 20px 16px 90px; }
 
-  /* --- Cards: one per topic --- */
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px 22px;
-    margin-bottom: 18px;
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
   }
-  .card-title {
-    margin: 0 0 16px 0;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
+  .topbar .logo-dot {
+    width: 40px; height: 40px; border-radius: 12px; flex: 0 0 40px;
+    background: linear-gradient(135deg, var(--accent), #ff8a50);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 18px;
+    box-shadow: 0 4px 12px rgba(255,90,31,0.35);
   }
-  .field { margin-bottom: 18px; }
-  .card .field:last-child { margin-bottom: 0; }
-  .field-row { display: flex; gap: 16px; }
-  .field-row .field { flex: 1; }
+  .topbar .titles { min-width: 0; }
+  .topbar h1 { font-size: 17px; margin: 0; font-weight: 800; letter-spacing: -0.2px; }
+  .topbar .sub { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
 
-  label.q {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
-    font-size: 15px;
-    color: var(--fg);
+  /* ---------- Progress ---------- */
+  .progress-wrap { margin: 10px 0 18px; }
+  .progress-track {
+    height: 10px; background: #e9ebf2; border-radius: 999px; overflow: hidden;
+    position: relative;
   }
-  label.q .req { color: var(--accent); margin-left: 4px; }
-  label.q .optional-tag {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--border);
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), #ff8a50);
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    vertical-align: middle;
+    transition: width 0.5s cubic-bezier(.22,1,.36,1);
+    position: relative;
+  }
+  .progress-fill::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    animation: shimmer 1.8s infinite;
+  }
+  @keyframes shimmer { 0% { transform: translateX(-100%);} 100% { transform: translateX(100%);} }
+  .progress-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12.5px; color: var(--muted); margin-top: 7px; font-weight: 600;
+  }
+  .progress-meta .pct { color: var(--accent); font-weight: 800; }
+
+  /* ---------- Step dots ---------- */
+  .dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .dot {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--border); background: #fff;
+    font-size: 11.5px; font-weight: 800; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s; cursor: default; user-select: none;
+  }
+  .dot.done { background: var(--success); border-color: var(--success); color: #fff; }
+  .dot.active {
+    border-color: var(--accent); color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255,90,31,0.18);
+    transform: scale(1.12);
+  }
+  .dot.clickable { cursor: pointer; }
+
+  /* ---------- Step cards ---------- */
+  .step { display: none; }
+  .step.active { display: block; animation: stepIn 0.4s cubic-bezier(.22,1,.36,1); }
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 22px;
+    box-shadow: var(--shadow);
+  }
+  .step-kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .step h2 { font-size: 21px; margin: 0 0 6px; font-weight: 800; letter-spacing: -0.3px; }
+  .step .lead { color: var(--muted); font-size: 14.5px; margin: 0 0 18px; }
+
+  label.q { display: block; font-weight: 700; margin-bottom: 10px; font-size: 15.5px; }
+  label.q .req { color: var(--accent); margin-left: 3px; }
+  .optional-tag {
+    display: inline-block; margin-left: 8px; padding: 2px 9px;
+    background: #f3f4f6; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle;
   }
 
-  input[type="text"], input[type="email"], input[type="date"], select, textarea {
-    width: 100%;
-    padding: 12px 14px;
-    background: var(--field-bg);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 15px;
-    font-family: inherit;
-    transition: border-color 0.15s, background 0.15s;
+  select, textarea {
+    width: 100%; padding: 13px 14px;
+    background: #fff; color: var(--fg);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 16px; font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b8b8b8' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 36px;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px;
   }
-  input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: var(--field-bg-hover);
+  select:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255,90,31,0.12);
   }
-  input[readonly] {
-    background: #080808;
-    color: var(--muted);
-    cursor: not-allowed;
-    border-style: dashed;
-  }
-  textarea { resize: vertical; min-height: 100px; }
+  textarea { resize: vertical; min-height: 110px; }
 
-  .yesno {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 4px;
-  }
+  /* ---------- Yes / No ---------- */
+  .yesno { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
   .yesno label {
-    cursor: pointer;
-    padding: 12px;
-    background: var(--field-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 600;
-    margin: 0;
-    transition: all 0.15s;
-    user-select: none;
+    cursor: pointer; padding: 15px; background: #fff;
+    border: 2px solid var(--border); border-radius: 14px;
+    text-align: center; font-weight: 800; font-size: 16px; margin: 0;
+    transition: all 0.18s; user-select: none; color: var(--muted);
   }
   .yesno input { display: none; }
-  .yesno label:hover { background: var(--field-bg-hover); }
-  .yesno label.checked {
-    background: rgba(255, 90, 31, 0.18);
-    border-color: var(--accent);
-    color: var(--accent);
+  .yesno label:active { transform: scale(0.97); }
+  .yesno label.checked[data-value="Yes"] {
+    background: var(--success-soft); border-color: var(--success); color: var(--success);
+    box-shadow: 0 0 0 4px rgba(22,163,74,0.12);
+  }
+  .yesno label.checked[data-value="No"] {
+    background: var(--danger-soft); border-color: var(--danger); color: var(--danger);
+    box-shadow: 0 0 0 4px rgba(220,38,38,0.10);
   }
 
-  .resource-link {
-    margin-top: 12px;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--muted);
+  /* ---------- HERO LINK CARDS (the focal point) ---------- */
+  .link-hero {
+    position: relative; display: flex; align-items: center; gap: 14px;
+    margin-top: 16px; padding: 18px 16px;
+    border-radius: 16px; text-decoration: none;
+    background: linear-gradient(#ffffff, #ffffff) padding-box,
+                linear-gradient(120deg, var(--accent), #ffb347, var(--accent)) border-box;
+    border: 3px solid transparent;
+    background-size: 100% 100%, 250% 250%;
+    animation: borderFlow 3.5s linear infinite;
+    box-shadow: 0 6px 18px rgba(255,90,31,0.18);
+    transition: transform 0.18s, box-shadow 0.18s;
   }
-  .resource-link a {
-    color: var(--accent);
-    text-decoration: underline;
-    font-weight: 600;
+  @keyframes borderFlow {
+    0%   { background-position: 0 0, 0% 50%; }
+    100% { background-position: 0 0, 250% 50%; }
   }
-  .resource-link::before {
-    content: "📋 How-to: ";
-    color: var(--fg);
-    font-weight: 600;
+  .link-hero:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(255,90,31,0.28); }
+  .link-hero:active { transform: scale(0.98); }
+  .link-hero .ico {
+    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 23px;
+  }
+  .link-hero .txt { min-width: 0; flex: 1; }
+  .link-hero .txt .t { font-weight: 800; font-size: 15.5px; color: var(--fg); }
+  .link-hero .txt .d { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .link-hero .go {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 5px;
+    font-weight: 800; font-size: 13px; color: #fff;
+    background: var(--accent); padding: 9px 14px; border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(255,90,31,0.35);
+    animation: nudge 1.6s ease-in-out infinite;
+    white-space: nowrap;
+  }
+  @keyframes nudge { 0%,100% { transform: translateX(0);} 50% { transform: translateX(4px);} }
+  .link-hero.visited .go { animation: none; background: var(--success); box-shadow: 0 3px 10px rgba(22,163,74,0.3); }
+  .link-hero.urgent { animation: borderFlow 3.5s linear infinite, urgentPulse 1.2s ease-in-out infinite; }
+  @keyframes urgentPulse {
+    0%,100% { box-shadow: 0 6px 18px rgba(255,90,31,0.18); }
+    50%     { box-shadow: 0 6px 28px rgba(255,90,31,0.5); }
   }
 
+  /* ---------- Callouts ---------- */
   .conditional {
-    margin-top: 10px;
-    padding: 12px 16px;
-    background: rgba(239, 68, 68, 0.08);
-    border-left: 3px solid var(--danger);
-    border-radius: 6px;
-    display: none;
-    font-size: 14px;
-    color: var(--fg);
+    margin-top: 14px; padding: 13px 16px;
+    background: var(--danger-soft); border-left: 4px solid var(--danger);
+    border-radius: 10px; display: none; font-size: 14px;
   }
-  .conditional.show { display: block; }
-  .conditional.info {
-    background: rgba(255, 255, 255, 0.04);
-    border-left-color: var(--accent);
-  }
-  .conditional a {
-    color: var(--accent);
-    text-decoration: underline;
-    font-weight: 600;
-  }
+  .conditional.show { display: block; animation: stepIn 0.3s; }
+  .conditional.info { background: var(--accent-soft); border-left-color: var(--accent); }
+  .conditional a { color: var(--accent); font-weight: 700; }
 
-  /* --- Photo uploads --- */
-  .photo-helper {
-    font-size: 13px;
-    color: var(--muted);
-    margin: 12px 0 6px;
-  }
-  .photo-grid {
-    display: grid;
-    gap: 12px;
-    margin-top: 8px;
-  }
+  /* ---------- Photos ---------- */
+  .photo-helper { font-size: 13.5px; color: var(--muted); margin: 4px 0 12px; }
+  .photo-grid { display: grid; gap: 12px; }
   .photo-grid.cols-2 { grid-template-columns: 1fr 1fr; }
   .photo-grid.cols-4 { grid-template-columns: 1fr 1fr; }
-  @media (min-width: 600px) {
-    .photo-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-  }
+  @media (min-width: 560px) { .photo-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; } }
   .photo-slot { display: flex; flex-direction: column; }
   .photo-slot .slot-label {
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 700;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
+    font-size: 11px; color: var(--muted); font-weight: 800; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.6px;
   }
   .file-drop {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 18px 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: var(--field-bg);
-    min-height: 96px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
+    border: 2px dashed #d3d7e0; border-radius: 14px;
+    padding: 18px 10px; text-align: center; cursor: pointer;
+    transition: all 0.18s; background: #fbfcfe;
+    min-height: 92px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 4px;
+    position: relative; overflow: hidden;
   }
-  .file-drop:hover, .file-drop.drag {
-    border-color: var(--accent);
-    background: var(--field-bg-hover);
-  }
+  .file-drop:hover, .file-drop.drag { border-color: var(--accent); background: var(--accent-soft); }
   .file-drop input[type="file"] { display: none; }
-  .file-drop p { margin: 0; font-weight: 600; font-size: 13px; }
-  .file-drop small { color: var(--muted); font-size: 11px; }
-  .file-preview {
-    margin-top: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+  .file-drop .cam { font-size: 22px; }
+  .file-drop p { margin: 0; font-weight: 700; font-size: 12.5px; color: var(--fg); }
+  .file-drop small { color: var(--muted); font-size: 10.5px; }
+  .photo-slot.filled .file-drop { border-style: solid; border-color: var(--success); background: var(--success-soft); }
+  .photo-slot.filled .file-drop p { color: var(--success); }
+  .file-preview { margin-top: 8px; }
   .file-preview img {
-    max-width: 100%;
-    max-height: 160px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    object-fit: cover;
+    width: 100%; max-height: 150px; object-fit: cover;
+    border-radius: 10px; border: 1px solid var(--border);
   }
-  .photo-slot.solo .file-drop { padding: 28px 16px; min-height: 120px; }
-  .photo-slot.solo .file-drop p { font-size: 14px; }
+  .photo-slot.solo .file-drop { padding: 26px 16px; min-height: 120px; }
 
-  button.submit {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.05s;
-    margin-top: 12px;
+  /* ---------- Wizard nav ---------- */
+  .wiz-nav { display: flex; gap: 12px; margin-top: 20px; }
+  .btn {
+    flex: 1; padding: 15px; border-radius: 14px; border: none;
+    font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer;
+    transition: all 0.15s; user-select: none;
   }
-  button.submit:hover { opacity: 0.92; }
-  button.submit:active { transform: translateY(1px); }
-  button.submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:active { transform: scale(0.98); }
+  .btn.back { background: #eef0f5; color: var(--muted); flex: 0 0 32%; }
+  .btn.next {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 6px 16px rgba(255,90,31,0.35);
+  }
+  .btn.next:hover { background: var(--accent-dark); }
+  .btn.next:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  .btn.submit-final {
+    background: linear-gradient(120deg, var(--accent), #ff8a50);
+    color: #fff; font-size: 17px;
+    box-shadow: 0 8px 22px rgba(255,90,31,0.4);
+  }
+  .nav-hint { text-align: center; color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 10px; min-height: 18px; }
 
-  .status {
-    margin-top: 18px;
-    padding: 14px 16px;
-    border-radius: 8px;
-    display: none;
-    font-size: 14px;
-    font-weight: 500;
+  /* ---------- Review step ---------- */
+  .review-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid #f1f2f6; font-size: 14.5px; gap: 10px;
   }
-  .status.show { display: block; }
-  .status.success { background: rgba(34, 197, 94, 0.12); border: 1px solid var(--success); color: var(--success); }
-  .status.error   { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); color: var(--danger); }
-  .status.loading { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); color: var(--muted); }
-  a { color: var(--accent); }
-  .footer-note {
-    margin-top: 32px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 12px;
+  .review-row:last-child { border-bottom: none; }
+  .review-row .lbl { color: var(--fg); font-weight: 600; }
+  .pill { padding: 3px 12px; border-radius: 999px; font-weight: 800; font-size: 12.5px; white-space: nowrap; }
+  .pill.yes { background: var(--success-soft); color: var(--success); }
+  .pill.no  { background: var(--danger-soft); color: var(--danger); }
+  .pill.n   { background: #f3f4f6; color: var(--muted); }
+
+  /* ---------- Submit overlay & success ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(246,247,251,0.94);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+    backdrop-filter: blur(4px);
   }
+  .overlay.show { display: flex; }
+  .overlay .box { text-align: center; padding: 30px; max-width: 340px; }
+  .spinner {
+    width: 54px; height: 54px; margin: 0 auto 18px;
+    border: 5px solid #eee; border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay .msg { font-weight: 800; font-size: 17px; }
+  .overlay .sub { color: var(--muted); font-size: 13.5px; margin-top: 6px; }
+
+  .success-card { text-align: center; padding: 40px 24px; }
+  .success-card .big { font-size: 56px; animation: pop 0.5s cubic-bezier(.22,1.6,.36,1); }
+  @keyframes pop { from { transform: scale(0);} to { transform: scale(1);} }
+  .success-card h2 { font-size: 24px; margin: 12px 0 8px; }
+  .success-card p { color: var(--muted); font-size: 15px; margin: 0 0 6px; }
+
+  .error-banner {
+    margin-top: 16px; padding: 14px 16px; border-radius: 12px;
+    background: var(--danger-soft); border: 1.5px solid var(--danger);
+    color: var(--danger); font-size: 14px; font-weight: 600; display: none;
+  }
+  .error-banner.show { display: block; }
+
+  /* ---------- Key modal ---------- */
+  .key-modal {
+    position: fixed; inset: 0; background: rgba(17,24,39,0.45);
+    display: none; align-items: center; justify-content: center; z-index: 60; padding: 20px;
+  }
+  .key-modal.show { display: flex; }
+  .key-modal .kbox {
+    background: #fff; border-radius: 18px; padding: 26px 22px; max-width: 380px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25); text-align: center;
+  }
+  .key-modal h3 { margin: 0 0 8px; font-size: 18px; }
+  .key-modal p { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  .key-modal input {
+    width: 100%; padding: 13px 14px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 16px; text-align: center; font-family: inherit;
+  }
+  .key-modal input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(255,90,31,0.12); }
+  .key-modal .btn { margin-top: 14px; width: 100%; }
+
+  canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
+
+  .footer-note { margin-top: 28px; text-align: center; color: #9ca3af; font-size: 12px; }
   @media (max-width: 520px) {
-    .field-row { flex-direction: column; gap: 0; }
-    h1 { font-size: 22px; }
-    .card { padding: 18px 16px; }
+    .card { padding: 20px 16px; }
+    .step h2 { font-size: 19px; }
+    .link-hero { flex-wrap: wrap; }
+    .link-hero .go { margin-left: 60px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <img src="https://www.jotform.com/uploads/jbilbrey920/form_files/380a458d-1fc0-4986-9cd4-27709cacd119.68941f14782af6.71787380.png" alt="Blufox Monday Ops Completion Checklist">
-    <h1>Blufox Monday Ops Completion Checklist</h1>
-    <p>Managers are required to be at work by 9 AM on Monday mornings to complete this checklist. This checklist should be completed before 10 AM and submitted for approval.</p>
+
+  <div class="topbar">
+    <div class="logo-dot">B</div>
+    <div class="titles">
+      <h1>Monday Ops Checklist</h1>
+      <div class="sub" id="weekLabel">Week of —</div>
+    </div>
   </div>
+
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-meta">
+      <span id="stepLabel">Step 1</span>
+      <span class="pct" id="pctLabel">0%</span>
+    </div>
+  </div>
+
+  <div class="dots" id="dots"></div>
 
   <form id="checklist" autocomplete="off" novalidate>
 
-    <!-- Card 1: Your Store -->
-    <section class="card">
-      <h2 class="card-title">Your Store</h2>
-
-      <div class="field">
-        <label class="q" for="store">Please Select Your Store Below<span class="req">*</span></label>
-        <select id="store" required>
-          <option value="">Loading stores…</option>
-        </select>
+    <!-- STEP 0: Welcome / store -->
+    <section class="step" data-step="0" data-title="Your Store">
+      <div class="card">
+        <div class="step-kicker">👋 Let's get started</div>
+        <h2>Good morning!</h2>
+        <p class="lead">This takes about 5 minutes. Complete it before <b>10 AM</b> every Monday. I'll walk you through each item — nothing gets skipped, nothing gets missed.</p>
+        <div class="field">
+          <label class="q" for="store">Select your store<span class="req">*</span></label>
+          <select id="store" required>
+            <option value="">Loading stores…</option>
+          </select>
+        </div>
+        <input type="hidden" id="name">
+        <input type="hidden" id="email">
+        <input type="hidden" id="dm">
+        <input type="hidden" id="dmEmail">
+        <input type="hidden" id="asmEmail">
+        <input type="hidden" id="date">
       </div>
-
-      <!-- Hidden background fields — populated automatically from the store directory, submitted with form -->
-      <input type="hidden" id="name">
-      <input type="hidden" id="email">
-      <input type="hidden" id="dm">
-      <input type="hidden" id="dmEmail">
-      <input type="hidden" id="asmEmail">
-      <input type="hidden" id="date">
     </section>
 
-    <!-- Card 2: Deposit Bags -->
-    <section class="card">
-      <h2 class="card-title">Deposit Bags &amp; Slips</h2>
-      <div class="field">
-        <label class="q">Do you have at least two months of deposit bags and deposit slips?<span class="req">*</span></label>
+    <!-- STEP 1: Deposit bags -->
+    <section class="step" data-step="1" data-title="Deposit Bags">
+      <div class="card">
+        <div class="step-kicker">💰 Step 1 · Deposit Bags &amp; Slips</div>
+        <h2>Deposit bags &amp; slips</h2>
+        <p class="lead">Check your supply — you should have at least <b>two months</b> of deposit bags and deposit slips on hand.</p>
         <div class="yesno" data-name="deposit">
-          <label data-value="Yes"><input type="radio" name="deposit" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="deposit" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="deposit" value="Yes" required>✓ Yes, stocked</label>
+          <label data-value="No"><input type="radio" name="deposit" value="No" required>✗ Running low</label>
         </div>
-        <div class="resource-link">
-          Need more deposit bags or slips? Order them via the <a href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">Deposit Bag Order Form</a>.
-        </div>
+        <a class="link-hero" id="linkDeposit" href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">
+          <div class="ico">📦</div>
+          <div class="txt">
+            <div class="t">Deposit Bag Order Form</div>
+            <div class="d">Order more bags &amp; slips — takes 1 minute</div>
+          </div>
+          <div class="go">Open <span>→</span></div>
+        </a>
         <div class="conditional" data-for="deposit" data-show-when="No">
-          If no, please follow this link to order more: <a href="https://form.jotform.com/jbilbrey920/deposit-bag-order-form" target="_blank" rel="noopener noreferrer">Deposit Bag Order Form</a>
+          You said you're running low — tap the <b>Deposit Bag Order Form</b> above and place the order <b>right now</b> before moving on.
         </div>
       </div>
     </section>
 
-    <!-- Card 3: PCI Checklist -->
-    <section class="card">
-      <h2 class="card-title">PCI Checklist</h2>
-      <div class="field">
-        <label class="q">Have you completed the PCI Checklist?<span class="req">*</span></label>
+    <!-- STEP 2: PCI -->
+    <section class="step" data-step="2" data-title="PCI Checklist">
+      <div class="card">
+        <div class="step-kicker">🔒 Step 2 · PCI Checklist</div>
+        <h2>PCI Checklist</h2>
+        <p class="lead">Complete the weekly PCI compliance walk-through for your store.</p>
         <div class="yesno" data-name="pci">
-          <label data-value="Yes"><input type="radio" name="pci" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="pci" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="pci" value="Yes" required>✓ Completed</label>
+          <label data-value="No"><input type="radio" name="pci" value="No" required>✗ Not yet</label>
         </div>
-        <div class="resource-link">
-          Walk through the steps here: <a href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">PCI Checklist Link</a>.
-        </div>
+        <a class="link-hero" id="linkPci" href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">
+          <div class="ico">🔒</div>
+          <div class="txt">
+            <div class="t">PCI Checklist</div>
+            <div class="d">Walk through the compliance steps here</div>
+          </div>
+          <div class="go">Open <span>→</span></div>
+        </a>
         <div class="conditional" data-for="pci" data-show-when="No">
-          Please complete the PCI Checklist before proceeding: <a href="https://app.smartsheet.com/b/publish?EQBCT=178b097a989840a0b7445d1490b7a1cf" target="_blank" rel="noopener noreferrer">PCI Checklist Link</a>
+          Please open the <b>PCI Checklist</b> above and complete it now — then come back and flip your answer to Yes.
         </div>
       </div>
     </section>
 
-    <!-- Card 4: Shiftlabs Schedules + 4 photo uploads -->
-    <section class="card">
-      <h2 class="card-title">Shiftlabs Schedules</h2>
-      <div class="field">
-        <label class="q">Do you have 4 weeks of schedules in Shiftlabs?<span class="req">*</span></label>
+    <!-- STEP 3: Schedules -->
+    <section class="step" data-step="3" data-title="Schedules">
+      <div class="card">
+        <div class="step-kicker">📅 Step 3 · Shiftlabs Schedules</div>
+        <h2>4 weeks of schedules</h2>
+        <p class="lead">Do you have <b>4 weeks</b> of schedules built in Shiftlabs?</p>
         <div class="yesno" data-name="schedules">
-          <label data-value="Yes"><input type="radio" name="schedules" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="schedules" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="schedules" value="Yes" required>✓ Yes</label>
+          <label data-value="No"><input type="radio" name="schedules" value="No" required>✗ No</label>
         </div>
-      </div>
-      <div class="field">
-        <label class="q">Upload a picture of each week of schedules<span class="req">*</span></label>
-        <div class="photo-helper">Open each week in Shiftlabs and snap a screenshot/photo. All four required.</div>
-        <div class="photo-grid cols-4">
-          <div class="photo-slot" data-photo-id="week1">
-            <div class="slot-label">Week One</div>
-            <div class="file-drop"><input type="file" id="week1" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="week2">
-            <div class="slot-label">Week Two</div>
-            <div class="file-drop"><input type="file" id="week2" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="week3">
-            <div class="slot-label">Week Three</div>
-            <div class="file-drop"><input type="file" id="week3" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="week4">
-            <div class="slot-label">Week Four</div>
-            <div class="file-drop"><input type="file" id="week4" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
+        <div class="field" style="margin-top:18px">
+          <label class="q">Upload a screenshot of each week<span class="req">*</span></label>
+          <div class="photo-helper">Open each week in Shiftlabs and screenshot it. These go straight to your DM for verification, so make sure names and shifts are readable. All four are required.</div>
+          <div class="photo-grid cols-4">
+            <div class="photo-slot" data-photo-id="week1">
+              <div class="slot-label">Week 1</div>
+              <div class="file-drop"><input type="file" id="week1" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="week2">
+              <div class="slot-label">Week 2</div>
+              <div class="file-drop"><input type="file" id="week2" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="week3">
+              <div class="slot-label">Week 3</div>
+              <div class="file-drop"><input type="file" id="week3" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="week4">
+              <div class="slot-label">Week 4</div>
+              <div class="file-drop"><input type="file" id="week4" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Card 4b: Uniforms for New Hires -->
-    <section class="card">
-      <h2 class="card-title">Uniforms for New Hires</h2>
-      <div class="field">
-        <label class="q">Do you need uniforms for your new hires?<span class="req">*</span></label>
+    <!-- STEP 4: Uniforms -->
+    <section class="step" data-step="4" data-title="Uniforms">
+      <div class="card">
+        <div class="step-kicker">👕 Step 4 · Uniforms</div>
+        <h2>Uniforms for new hires</h2>
+        <p class="lead">Do you have any new hires who still need shirts?</p>
         <div class="yesno" data-name="uniforms">
-          <label data-value="Yes"><input type="radio" name="uniforms" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="uniforms" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="uniforms" value="Yes" required>Yes, need shirts</label>
+          <label data-value="No"><input type="radio" name="uniforms" value="No" required>No, all set</label>
         </div>
-        <div class="conditional info" data-for="uniforms" data-show-when="Yes">
-          Order new shirts here: <a href="https://blufoxmobile.github.io/Uniform-Order-Form/" target="_blank" rel="noopener noreferrer">Blufox Mobile Uniform Order Form</a>
+        <div class="conditional info" data-for="uniforms" data-show-when="Yes" id="uniformReveal">
+          Order them now so they arrive this week 👇
         </div>
+        <a class="link-hero" id="linkUniform" href="https://blufoxmobile.github.io/Uniform-Order-Form/" target="_blank" rel="noopener noreferrer" style="display:none">
+          <div class="ico">👕</div>
+          <div class="txt">
+            <div class="t">Uniform Order Form</div>
+            <div class="d">Order new shirts for your team</div>
+          </div>
+          <div class="go">Open <span>→</span></div>
+        </a>
       </div>
     </section>
 
-    <!-- Card 5: Cash Float Tracker -->
-    <section class="card">
-      <h2 class="card-title">Cash Float Tracker</h2>
-      <div class="field">
-        <label class="q">Have you completed the Cash Float Tracker?<span class="req">*</span></label>
+    <!-- STEP 5: Cash float -->
+    <section class="step" data-step="5" data-title="Cash Float">
+      <div class="card">
+        <div class="step-kicker">💵 Step 5 · Cash Float Tracker</div>
+        <h2>Cash Float Tracker</h2>
+        <p class="lead">Count your drawer and submit this week's float.</p>
         <div class="yesno" data-name="cashfloat">
-          <label data-value="Yes"><input type="radio" name="cashfloat" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="cashfloat" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="cashfloat" value="Yes" required>✓ Submitted</label>
+          <label data-value="No"><input type="radio" name="cashfloat" value="No" required>✗ Not yet</label>
         </div>
-        <div class="resource-link">
-          Submit your float here: <a href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">Blufox Cash Float Tracker</a>.
-        </div>
+        <a class="link-hero" id="linkFloat" href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">
+          <div class="ico">💵</div>
+          <div class="txt">
+            <div class="t">Blufox Cash Float Tracker</div>
+            <div class="d">Submit your store's float here</div>
+          </div>
+          <div class="go">Open <span>→</span></div>
+        </a>
         <div class="conditional" data-for="cashfloat" data-show-when="No">
-          Please complete the Cash Float Tracker before proceeding: <a href="https://forms.office.com/r/qRwxkycrHJ" target="_blank" rel="noopener noreferrer">Blufox Cash Float Tracker</a>
+          Tap the <b>Cash Float Tracker</b> above and submit it now — then flip your answer to Yes.
         </div>
       </div>
     </section>
 
-    <!-- Card 6: Upgrades & Trade-Ins / Returns + 2 photos -->
-    <section class="card">
-      <h2 class="card-title">Upgrades &amp; Trade-Ins / Returns</h2>
-      <div class="field">
-        <label class="q">Have you shipped out returns and trade ins?<span class="req">*</span></label>
+    <!-- STEP 6: Returns / trade-ins -->
+    <section class="step" data-step="6" data-title="Trade-Ins">
+      <div class="card">
+        <div class="step-kicker">🚚 Step 6 · Upgrades &amp; Trade-Ins</div>
+        <h2>Ship out returns &amp; trade-ins</h2>
+        <p class="lead">Every Monday before open: all returns and trade-ins get shipped out.</p>
         <div class="yesno" data-name="returns">
-          <label data-value="Yes"><input type="radio" name="returns" value="Yes" required>Yes</label>
-          <label data-value="No"><input type="radio" name="returns" value="No" required>No</label>
+          <label data-value="Yes"><input type="radio" name="returns" value="Yes" required>✓ Shipped</label>
+          <label data-value="No"><input type="radio" name="returns" value="No" required>✗ Not yet</label>
         </div>
         <div class="conditional info" data-for="returns" data-show-when="No">
-          The goal here is to ship out returns and trade ins every Monday before opening the store. Please ship these out this morning!
+          Ship them out <b>this morning</b> before the store opens, then update your answer.
         </div>
-      </div>
-      <div class="field">
-        <label class="q">Upload a screenshot from XInventory showing each bucket has been cleared<span class="req">*</span></label>
-        <div class="photo-helper">Open XInventory, pull up the Upgrades bucket and the Trade-Ins/Returns bucket, and take a screenshot of each one <em>empty</em>. This is our proof that the bucket has been cleared out for the day.</div>
-        <div class="photo-grid cols-2">
-          <div class="photo-slot" data-photo-id="upgrades">
-            <div class="slot-label">Empty Upgrades Bucket (XInventory)</div>
-            <div class="file-drop"><input type="file" id="upgrades" accept="image/*" capture="environment"><p>Upload screenshot</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="tradeins">
-            <div class="slot-label">Empty Trade-Ins / Returns Bucket (XInventory)</div>
-            <div class="file-drop"><input type="file" id="tradeins" accept="image/*" capture="environment"><p>Upload screenshot</p></div>
-            <div class="file-preview"></div>
+        <div class="field" style="margin-top:18px">
+          <label class="q">XInventory proof — both buckets cleared<span class="req">*</span></label>
+          <div class="photo-helper">Open XInventory, pull up each bucket, and screenshot it <em>empty</em>.</div>
+          <div class="photo-grid cols-2">
+            <div class="photo-slot" data-photo-id="upgrades">
+              <div class="slot-label">Upgrades bucket</div>
+              <div class="file-drop"><input type="file" id="upgrades" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="tradeins">
+              <div class="slot-label">Trade-ins / returns bucket</div>
+              <div class="file-drop"><input type="file" id="tradeins" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Card 7: Brinks Deposit Logs -->
-    <section class="card">
-      <h2 class="card-title">Brinks Deposit Logs</h2>
-      <div class="field">
-        <label class="q">Please upload a picture of last week's Brinks Deposit Logs<span class="req">*</span></label>
+    <!-- STEP 7: Brinks -->
+    <section class="step" data-step="7" data-title="Brinks Logs">
+      <div class="card">
+        <div class="step-kicker">🏦 Step 7 · Brinks Deposit Logs</div>
+        <h2>Last week's Brinks logs</h2>
+        <p class="lead">Snap a clear photo of last week's Brinks Deposit Logs page.</p>
         <div class="photo-slot solo" data-photo-id="brinks">
-          <div class="file-drop"><input type="file" id="brinks" accept="image/*" capture="environment"><p>Tap to choose a photo or drag one here</p><small>JPG/PNG — auto-resized for upload</small></div>
+          <div class="file-drop"><input type="file" id="brinks" accept="image/*"><span class="cam">📸</span><p>Tap to take or choose a photo</p><small>JPG/PNG — uploaded at high quality</small></div>
           <div class="file-preview"></div>
         </div>
       </div>
     </section>
 
-    <!-- Card 8: Facilities / Ops Needs (notes + optional photos) -->
-    <section class="card">
-      <h2 class="card-title">Facilities / Ops Needs</h2>
-      <div class="field">
-        <label class="q" for="notes">Is there anything you need in your store from a facilities or ops perspective? Please leave detailed notes of what you need from us. Thank you.</label>
-        <textarea id="notes" placeholder="Optional"></textarea>
-      </div>
-      <div class="field">
-        <label class="q">Upload any photos of facilities issues <span class="optional-tag">Optional</span></label>
-        <div class="photo-helper">If something is broken, leaking, or needs attention, attach a photo and we'll be notified immediately.</div>
-        <div class="photo-grid cols-4">
-          <div class="photo-slot" data-photo-id="facility1" data-optional="true">
-            <div class="slot-label">Photo 1</div>
-            <div class="file-drop"><input type="file" id="facility1" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="facility2" data-optional="true">
-            <div class="slot-label">Photo 2</div>
-            <div class="file-drop"><input type="file" id="facility2" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="facility3" data-optional="true">
-            <div class="slot-label">Photo 3</div>
-            <div class="file-drop"><input type="file" id="facility3" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
-          </div>
-          <div class="photo-slot" data-photo-id="facility4" data-optional="true">
-            <div class="slot-label">Photo 4</div>
-            <div class="file-drop"><input type="file" id="facility4" accept="image/*" capture="environment"><p>Tap to choose</p></div>
-            <div class="file-preview"></div>
+    <!-- STEP 8: Facilities -->
+    <section class="step" data-step="8" data-title="Facilities">
+      <div class="card">
+        <div class="step-kicker">🛠 Step 8 · Facilities &amp; Ops</div>
+        <h2>Anything you need?</h2>
+        <p class="lead">Broken, leaking, missing, or needed — tell us and we're on it.</p>
+        <div class="field">
+          <label class="q" for="notes">Notes for the ops team <span class="optional-tag">Optional</span></label>
+          <textarea id="notes" placeholder="e.g. The front door closer is sticking, we need 2 more chairs for the sales floor…"></textarea>
+        </div>
+        <div class="field">
+          <label class="q">Photos of any issues <span class="optional-tag">Optional</span></label>
+          <div class="photo-helper">A photo gets facilities issues fixed twice as fast.</div>
+          <div class="photo-grid cols-4">
+            <div class="photo-slot" data-photo-id="facility1" data-optional="true">
+              <div class="slot-label">Photo 1</div>
+              <div class="file-drop"><input type="file" id="facility1" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="facility2" data-optional="true">
+              <div class="slot-label">Photo 2</div>
+              <div class="file-drop"><input type="file" id="facility2" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="facility3" data-optional="true">
+              <div class="slot-label">Photo 3</div>
+              <div class="file-drop"><input type="file" id="facility3" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
+            <div class="photo-slot" data-photo-id="facility4" data-optional="true">
+              <div class="slot-label">Photo 4</div>
+              <div class="file-drop"><input type="file" id="facility4" accept="image/*"><span class="cam">📸</span><p>Tap to add</p></div>
+              <div class="file-preview"></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <button type="submit" class="submit" id="submitBtn">Submit Checklist</button>
-    <div class="status" id="status"></div>
+    <!-- STEP 9: Review -->
+    <section class="step" data-step="9" data-title="Review">
+      <div class="card">
+        <div class="step-kicker">✅ Final step · Review &amp; submit</div>
+        <h2>Look good?</h2>
+        <p class="lead">Here's everything you're submitting. Tap any dot up top to jump back and fix something.</p>
+        <div id="reviewBody"></div>
+        <div class="error-banner" id="errorBanner"></div>
+      </div>
+    </section>
+
+    <!-- SUCCESS -->
+    <section class="step" data-step="10" data-title="Done">
+      <div class="card success-card">
+        <div class="big">🎉</div>
+        <h2 id="successTitle">Checklist submitted!</h2>
+        <p>Your DM has been emailed with everything, photos included.</p>
+        <p style="font-size:13px">Have a great week — go sell something! 💪</p>
+      </div>
+    </section>
+
+    <div class="wiz-nav" id="wizNav">
+      <button type="button" class="btn back" id="btnBack">← Back</button>
+      <button type="button" class="btn next" id="btnNext">Continue →</button>
+    </div>
+    <div class="nav-hint" id="navHint"></div>
   </form>
 
   <p class="footer-note">Blufox Mobile — Internal use only.</p>
 </div>
+
+<div class="overlay" id="overlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <div class="msg" id="overlayMsg">Submitting…</div>
+    <div class="sub" id="overlaySub">Hang tight, this takes a few seconds.</div>
+  </div>
+</div>
+
+<div class="key-modal" id="keyModal">
+  <div class="kbox">
+    <h3>🔑 One-time setup</h3>
+    <p>Enter the Blufox upload key. You only do this once on this device — ask your DM if you don't have it.</p>
+    <input type="password" id="keyInput" placeholder="Upload key" autocomplete="off">
+    <button type="button" class="btn next" id="keySave">Save &amp; continue</button>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
 
 <script>
   /* ============================================================
@@ -528,63 +659,30 @@
    * All GitHub writes go through the Blufox upload proxy, a Google Apps
    * Script web app (github-upload-proxy.gs in the Daily-Sales-Report repo).
    * The GitHub token lives ONLY in the proxy's Script Properties.
-   * DEPLOYMENT: script.google.com -> New project -> paste
-   *   github-upload-proxy.gs -> Script Properties: GITHUB_TOKEN + UPLOAD_KEY
-   *   -> Deploy -> Web app (Execute as: Me / Who has access: Anyone)
-   *   -> paste the /exec URL below.
    * ============================================================ */
   const PROXY_URL = 'https://script.google.com/macros/s/AKfycbxZgDgRW9r-g5AHMyRTljX-fQpHO6ueqpL7qBgXwbDVrjfQSMTLEE4e70AX0oZXV_M74Q/exec';
-  // Upload key (the proxy passphrase) — shared across the Blufox pages,
-  // kept per-browser in localStorage ('blufoxUploadKey').
   const UPLOAD_KEY_STORAGE = 'blufoxUploadKey';
 
-  /* ============================================================
-   * CONFIGURATION — edit these values as needed
-   * ============================================================ */
   const CONFIG = {
-    // Raw URL of the store directory JSON
     DIRECTORY_URL: "https://raw.githubusercontent.com/blufoxmobile/Daily-Sales-Report/main/data/store-directory.json",
-
-    // Where to write submissions (one file per submission)
-    // The Monday Ops Tracker (Brinks-Logbook-Reporting/monday-ops.html) reads from this path.
     GITHUB_OWNER: "blufoxmobile",
     GITHUB_REPO: "Daily-Sales-Report",
     GITHUB_BRANCH: "main",
     SUBMISSIONS_DIR: "data/monday-ops-submissions",
-
-    // Where to write hosted photo files (one .jpg per uploaded photo).
-    // The Zapier email links to the raw.githubusercontent.com URLs under this dir.
+    // Hosted photo files (one .jpg per photo). The email links to the
+    // raw.githubusercontent.com URLs under this dir. Old photo folders are
+    // pruned automatically so the repo never balloons.
     PHOTOS_DIR: "data/monday-ops-photos",
-
-    // NOTE: GitHub writes go through the Blufox upload proxy (PROXY_URL
-    // above) — no GitHub token appears anywhere in this page.
-
-    // Zapier "Catch Hook" webhook URL. Every submission posts here so the
-    // "Monday Ops Email" Zap can build and send the HTML email (with photos
-    // embedded inline as base64, mirroring the DM Visit Guide pattern).
-    // The payload includes `payloadJson` (full submission as a JSON string)
-    // plus flat top-level fields and a `flags.missedItemsHuman` array.
-    // To rotate: Zapier → Monday Ops Email Zap → Catch Hook → copy URL.
-    // Leave blank to disable webhook delivery (submissions still upload to GitHub).
     ZAPIER_WEBHOOK_URL: "https://hooks.zapier.com/hooks/catch/20441079/4othfjy/",
-
-    // Fallback store list if directory fetch fails
     FALLBACK_STORES: [
       "Bourbonnais","Burbank","Calumet City","Cicero","Dekalb","Downer's Grove",
       "Elkhart","Evanston","Evergreen Park","Frankfort","Glenview","Hammond",
       "Kildeer","Machesney Park","Michigan City","Round Lake Beach","Schererville",
       "South Bend","South Skokie","Tinley Park","Uptown","Valparaiso"
     ],
-
-    // Hard-coded DM emails as a fallback if the directory doesn't supply them.
-    DM_EMAILS: {
-      "Imaad": "",
-      "Juan":  "",
-      "Jacob": ""
-    }
+    DM_EMAILS: { "Imaad": "", "Juan": "", "Jacob": "" }
   };
 
-  // Required photo uploads (id → human label, used for error messages and email body)
   const REQUIRED_PHOTOS = {
     week1:    "Schedules — Week 1",
     week2:    "Schedules — Week 2",
@@ -594,16 +692,12 @@
     tradeins: "Trade-Ins / Returns Bucket",
     brinks:   "Brinks Deposit Logs"
   };
-
-  // Optional photo uploads (managers can attach 0+ photos of facilities issues)
   const OPTIONAL_PHOTOS = {
     facility1: "Facilities Issue — Photo 1",
     facility2: "Facilities Issue — Photo 2",
     facility3: "Facilities Issue — Photo 3",
     facility4: "Facilities Issue — Photo 4"
   };
-
-  // Friendly labels for the Zapier email body
   const ANSWER_LABELS = {
     depositBags:    "Two months of deposit bags & slips",
     pciChecklist:   "PCI Checklist complete",
@@ -612,11 +706,16 @@
     returnsShipped: "Returns & trade-ins shipped"
   };
 
-  /* ============================================================ */
-
   const $ = id => document.getElementById(id);
   const slugify = s => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+  }
+
+  /* ============================================================
+   * STORE DIRECTORY
+   * ============================================================ */
   function pickField(obj, names) {
     if (!obj) return "";
     const keys = Object.keys(obj);
@@ -628,29 +727,17 @@
   }
 
   function normalizeDirectory(data) {
-    // --- Schema written by the Admin-Panel-Directory app ---
-    // The admin panel saves data shaped like:
-    //   {
-    //     stores: ["Store A", "Store B", ...],           // array of strings
-    //     managers: [...], dms: [...],                   // option lists (ignored here)
-    //     storeManagers:     { "Store A": "mgr@..." },   // store name -> manager email
-    //     storeDMs:          { "Store A": "dm@..."  },   // store name -> DM email
-    //     storeManagerNames: { "Store A": "Jane Doe" }   // store name -> manager full name
-    //   }
-    // The generic handler below can't parse this because `stores` is a list of
-    // plain strings (no embedded manager/DM data), so we handle it explicitly.
     if (
       data && typeof data === "object" &&
-      Array.isArray(data.stores) &&
-      data.stores.length > 0 &&
+      Array.isArray(data.stores) && data.stores.length > 0 &&
       typeof data.stores[0] === "string" &&
       (data.storeManagers || data.storeDMs || data.storeManagerNames)
     ) {
-      const sm  = (data.storeManagers     && typeof data.storeManagers     === "object") ? data.storeManagers     : {};
-      const sd  = (data.storeDMs          && typeof data.storeDMs          === "object") ? data.storeDMs          : {};
-      const smn = (data.storeManagerNames && typeof data.storeManagerNames === "object") ? data.storeManagerNames : {};
-      const sdn = (data.storeDMNames      && typeof data.storeDMNames      === "object") ? data.storeDMNames      : {};
-      const sa  = (data.storeAMs          && typeof data.storeAMs          === "object") ? data.storeAMs          : {};
+      const sm  = data.storeManagers     || {};
+      const sd  = data.storeDMs          || {};
+      const smn = data.storeManagerNames || {};
+      const sdn = data.storeDMNames      || {};
+      const sa  = data.storeAMs          || {};
       return data.stores
         .filter(name => typeof name === "string" && name.trim() !== "")
         .map(name => {
@@ -658,21 +745,15 @@
           const dmEmail      = sd[name] || "";
           const asmEmail     = sa[name] || "";
           return {
-            store:        name,
-            // Prefer the full name; fall back to the email so the required
-            // `name` field is never blank for stores that have a manager.
-            manager:      smn[name] || managerEmail || "",
+            store: name,
+            manager: smn[name] || managerEmail || "",
             managerEmail,
-            // No DM-names map exists in the current admin panel — use the
-            // email as the DM identifier so submissions can still go through.
-            dm:           sdn[name] || dmEmail || "",
+            dm: sdn[name] || dmEmail || "",
             dmEmail,
             asmEmail
           };
         });
     }
-
-    // --- Generic fallback (arrays of objects, etc.) ---
     let arr = [];
     if (Array.isArray(data)) arr = data;
     else if (Array.isArray(data?.stores)) arr = data.stores;
@@ -706,29 +787,116 @@
     } catch (err) {
       console.warn("Directory fetch failed, using fallback:", err);
       DIRECTORY = CONFIG.FALLBACK_STORES.map(s => ({
-        store: s, manager: "", managerEmail: "", dm: "", dmEmail: ""
+        store: s, manager: "", managerEmail: "", dm: "", dmEmail: "", asmEmail: ""
       }));
     }
     DIRECTORY.sort((a, b) => a.store.localeCompare(b.store));
-    sel.innerHTML = '<option value="">Please Select</option>' +
+    sel.innerHTML = '<option value="">Please select…</option>' +
       DIRECTORY.map(e => `<option value="${escapeHtml(e.store)}">${escapeHtml(e.store)}</option>`).join("");
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
-  }
-
-  // Auto-fill all identity fields (incl. hidden ones) on store change
   $("store").addEventListener("change", e => {
     const entry = DIRECTORY.find(d => d.store === e.target.value);
-    $("name").value    = entry?.manager      || "";
-    $("email").value   = entry?.managerEmail || "";
-    $("dm").value      = entry?.dm           || "";
-    $("dmEmail").value = entry?.dmEmail || (entry?.dm && CONFIG.DM_EMAILS[entry.dm]) || "";
+    $("name").value     = entry?.manager      || "";
+    $("email").value    = entry?.managerEmail || "";
+    $("dm").value       = entry?.dm           || "";
+    $("dmEmail").value  = entry?.dmEmail || (entry?.dm && CONFIG.DM_EMAILS[entry.dm]) || "";
     $("asmEmail").value = entry?.asmEmail || "";
+    updateNav();
   });
 
-  // Y/N styling + conditional reveal
+  /* ============================================================
+   * WIZARD ENGINE
+   * ============================================================ */
+  const steps = [...document.querySelectorAll(".step")];
+  const LAST_INPUT_STEP = 9;   // review step index
+  const SUCCESS_STEP = 10;
+  let current = 0;
+  let maxVisited = 0;
+
+  const dotsWrap = $("dots");
+  steps.slice(0, LAST_INPUT_STEP + 1).forEach((s, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.textContent = i === 0 ? "🏠" : (i === LAST_INPUT_STEP ? "✓" : i);
+    d.title = s.dataset.title;
+    d.addEventListener("click", () => {
+      if (i <= maxVisited && current !== SUCCESS_STEP) go(i);
+    });
+    dotsWrap.appendChild(d);
+  });
+  const dots = [...dotsWrap.children];
+
+  // Requirements per step. Returns "" when satisfied, else a helpful hint.
+  function stepHint(i) {
+    const f = document.forms.checklist;
+    switch (i) {
+      case 0: return $("store").value ? "" : "Select your store to get started.";
+      case 1: return f.deposit.value ? "" : "Answer Yes or No to continue.";
+      case 2: return f.pci.value ? "" : "Answer Yes or No to continue.";
+      case 3: {
+        if (!f.schedules.value) return "Answer Yes or No to continue.";
+        const missing = ["week1","week2","week3","week4"].filter(id => !$(id).dataset.value);
+        return missing.length ? `Add ${missing.length} more schedule screenshot${missing.length>1?"s":""}.` : "";
+      }
+      case 4: return f.uniforms.value ? "" : "Answer Yes or No to continue.";
+      case 5: return f.cashfloat.value ? "" : "Answer Yes or No to continue.";
+      case 6: {
+        if (!f.returns.value) return "Answer Yes or No to continue.";
+        const missing = ["upgrades","tradeins"].filter(id => !$(id).dataset.value);
+        return missing.length ? "Add both XInventory screenshots to continue." : "";
+      }
+      case 7: return $("brinks").dataset.value ? "" : "Add a photo of the Brinks logs to continue.";
+      case 8: return "";           // facilities is optional
+      case 9: return "";           // review
+      default: return "";
+    }
+  }
+
+  function go(i) {
+    current = i;
+    maxVisited = Math.max(maxVisited, i);
+    steps.forEach((s, k) => s.classList.toggle("active", k === i));
+    dots.forEach((d, k) => {
+      d.classList.toggle("active", k === i);
+      d.classList.toggle("done", k < i || (k <= maxVisited && k !== i && stepHint(k) === ""));
+      d.classList.toggle("clickable", k <= maxVisited);
+    });
+    const pct = Math.round((Math.min(i, LAST_INPUT_STEP) / LAST_INPUT_STEP) * 100);
+    $("progressFill").style.width = pct + "%";
+    $("pctLabel").textContent = pct + "%";
+    $("stepLabel").textContent = i === SUCCESS_STEP ? "All done!" :
+      (i === 0 ? "Getting started" : `Step ${i} of ${LAST_INPUT_STEP} — ${steps[i].dataset.title}`);
+    $("btnBack").style.visibility = (i === 0 || i === SUCCESS_STEP) ? "hidden" : "visible";
+    $("wizNav").style.display = i === SUCCESS_STEP ? "none" : "flex";
+    const nextBtn = $("btnNext");
+    if (i === LAST_INPUT_STEP) {
+      nextBtn.textContent = "🚀 Submit checklist";
+      nextBtn.classList.add("submit-final");
+      buildReview();
+    } else {
+      nextBtn.textContent = "Continue →";
+      nextBtn.classList.remove("submit-final");
+    }
+    updateNav();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function updateNav() {
+    const hint = stepHint(current);
+    $("btnNext").disabled = !!hint;
+    $("navHint").textContent = "";
+  }
+
+  $("btnBack").addEventListener("click", () => { if (current > 0) go(current - 1); });
+  $("btnNext").addEventListener("click", () => {
+    const hint = stepHint(current);
+    if (hint) { $("navHint").textContent = hint; return; }
+    if (current === LAST_INPUT_STEP) { submitAll(); return; }
+    go(current + 1);
+  });
+
+  /* ---------- Yes/No wiring ---------- */
   document.querySelectorAll(".yesno").forEach(group => {
     group.addEventListener("change", () => {
       const name = group.dataset.name;
@@ -741,11 +909,33 @@
         const showWhen = cond.dataset.showWhen || "No";
         cond.classList.toggle("show", selected === showWhen);
       }
+      // Emphasize the hero link when the answer means "go do it now"
+      const urgentMap = { deposit: ["No","linkDeposit"], pci: ["No","linkPci"], cashfloat: ["No","linkFloat"] };
+      if (urgentMap[name]) {
+        const [when, linkId] = urgentMap[name];
+        $(linkId)?.classList.toggle("urgent", selected === when);
+      }
+      if (name === "uniforms") {
+        $("linkUniform").style.display = selected === "Yes" ? "flex" : "none";
+        $("linkUniform").classList.toggle("urgent", selected === "Yes");
+      }
+      updateNav();
     });
   });
 
-  // Image resize
-  function resizeImage(file, maxDim = 1200, quality = 0.65) {
+  // Mark hero links as visited when tapped
+  document.querySelectorAll(".link-hero").forEach(a => {
+    a.addEventListener("click", () => {
+      a.classList.add("visited");
+      a.classList.remove("urgent");
+      const go = a.querySelector(".go");
+      if (go) go.innerHTML = "Opened ✓";
+    });
+  });
+
+  /* ---------- Photo handling ---------- */
+  // High quality so schedules stay readable when zoomed on a phone.
+  function resizeImage(file, maxDim = 2000, quality = 0.85) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
@@ -769,7 +959,6 @@
     });
   }
 
-  // Wire up every photo slot on the page
   document.querySelectorAll(".photo-slot[data-photo-id]").forEach(slot => {
     const drop = slot.querySelector(".file-drop");
     const input = slot.querySelector('input[type="file"]');
@@ -787,23 +976,25 @@
     });
     input.addEventListener("change", async () => {
       preview.innerHTML = "";
+      slot.classList.remove("filled");
       const f = input.files[0];
-      if (!f) { delete input.dataset.value; return; }
+      if (!f) { delete input.dataset.value; updateNav(); return; }
       try {
         const dataUrl = await resizeImage(f);
         input.dataset.value = dataUrl;
         const img = document.createElement("img");
         img.src = dataUrl;
         preview.appendChild(img);
+        slot.classList.add("filled");
+        drop.querySelector("p").textContent = "Tap to replace";
       } catch (err) {
         console.error("Image processing failed:", err);
       }
+      updateNav();
     });
   });
 
-  // Default date (hidden field) — snap to this week's Monday in LOCAL time
-  // so submissions land on the correct week in the Monday Ops Tracker
-  // regardless of submission day or timezone.
+  /* ---------- Date helpers ---------- */
   function thisOrLastMonday(d) {
     d = new Date(d); d.setHours(0, 0, 0, 0);
     const diff = (d.getDay() + 6) % 7;
@@ -817,40 +1008,166 @@
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
-  $("date").value = fmtDateLocalISO(thisOrLastMonday(new Date()));
+  const monday = thisOrLastMonday(new Date());
+  $("date").value = fmtDateLocalISO(monday);
+  $("weekLabel").textContent = "Week of " + monday.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 
-  // Submit
-  $("checklist").addEventListener("submit", async e => {
-    e.preventDefault();
-    const status = $("status"), btn = $("submitBtn"), form = e.target;
+  /* ---------- Review ---------- */
+  function buildReview() {
+    const f = document.forms.checklist;
+    const pill = v => v === "Yes" ? '<span class="pill yes">✓ Yes</span>'
+                : v === "No" ? '<span class="pill no">✗ No</span>'
+                : '<span class="pill n">—</span>';
+    const photoCount = Object.keys(REQUIRED_PHOTOS).filter(id => $(id).dataset.value).length;
+    const facCount = Object.keys(OPTIONAL_PHOTOS).filter(id => $(id).dataset.value).length;
+    let html = "";
+    html += `<div class="review-row"><span class="lbl">🏪 Store</span><b>${escapeHtml($("store").value || "—")}</b></div>`;
+    html += `<div class="review-row"><span class="lbl">${ANSWER_LABELS.depositBags}</span>${pill(f.deposit.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">${ANSWER_LABELS.pciChecklist}</span>${pill(f.pci.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">${ANSWER_LABELS.scheduleWeeks}</span>${pill(f.schedules.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">Uniforms needed for new hires</span>${pill(f.uniforms.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">${ANSWER_LABELS.cashFloat}</span>${pill(f.cashfloat.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">${ANSWER_LABELS.returnsShipped}</span>${pill(f.returns.value)}</div>`;
+    html += `<div class="review-row"><span class="lbl">📸 Required photos</span><b>${photoCount} / 7</b></div>`;
+    if (facCount) html += `<div class="review-row"><span class="lbl">🛠 Facilities photos</span><b>${facCount}</b></div>`;
+    if ($("notes").value.trim()) html += `<div class="review-row"><span class="lbl">📝 Facilities notes</span><b>Included</b></div>`;
+    $("reviewBody").innerHTML = html;
+  }
 
-    if (!$("store").value) {
-      return showStatus("error", "Please select your store before submitting.");
+  /* ============================================================
+   * UPLOAD KEY (styled modal instead of prompt())
+   * ============================================================ */
+  let keyResolver = null;
+  function askKey() {
+    return new Promise(resolve => {
+      keyResolver = resolve;
+      $("keyInput").value = "";
+      $("keyModal").classList.add("show");
+      setTimeout(() => $("keyInput").focus(), 50);
+    });
+  }
+  $("keySave").addEventListener("click", () => {
+    const v = $("keyInput").value.trim();
+    if (!v) return;
+    $("keyModal").classList.remove("show");
+    keyResolver?.(v);
+  });
+  $("keyInput").addEventListener("keydown", e => { if (e.key === "Enter") $("keySave").click(); });
+
+  async function getUploadKey(forcePrompt) {
+    let key = localStorage.getItem(UPLOAD_KEY_STORAGE);
+    if (!key || forcePrompt) {
+      key = await askKey();
+      if (key) localStorage.setItem(UPLOAD_KEY_STORAGE, key);
     }
-    const autoFilled = ["name","email","dm","date"];
-    for (const id of autoFilled) {
-      if (!$(id).value) {
-        return showStatus("error", "Your store directory entry is missing a required field. Please contact ops to update the store directory before submitting.");
+    return key;
+  }
+  function clearUploadKey() { localStorage.removeItem(UPLOAD_KEY_STORAGE); }
+
+  /* ============================================================
+   * PROXY TRANSPORT
+   * ============================================================ */
+  async function proxyPost(payload) {
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
+    return await res.json();
+  }
+
+  function proxyErrorText(resp) {
+    const errs = [];
+    (resp.results || []).forEach(r => {
+      if (Array.isArray(r.files) && r.files.length) {
+        r.files.forEach(f => { if (!f.ok) errs.push(r.repo + '/' + f.path + ' — ' + (f.error || 'failed')); });
+      } else if (!r.ok) {
+        errs.push(r.repo + ' — ' + (r.error || 'failed'));
       }
-    }
-    const radios = ["deposit","pci","schedules","uniforms","cashfloat","returns"];
-    for (const r of radios) {
-      if (!form[r].value) return showStatus("error", "Please answer all yes/no questions.");
-    }
+    });
+    return errs.length ? errs.join('; ') : (resp.error || 'Upload failed');
+  }
 
-    // All required photos
-    const missing = [];
+  async function proxyUpload(files) {
+    let key = await getUploadKey(false);
+    if (!key) throw new Error('Upload key required.');
+    let resp = await proxyPost({ key, files });
+    if (!resp.ok && /bad key|unauthorized/i.test(String(resp.error || ''))) {
+      clearUploadKey();
+      key = await getUploadKey(true);
+      if (!key) throw new Error('Upload key required');
+      resp = await proxyPost({ key, files });
+    }
+    if (!resp.ok) throw new Error(proxyErrorText(resp));
+    return resp;
+  }
+
+  /* ============================================================
+   * PHOTO HOSTING — real .jpg files on GitHub, one commit.
+   * Returns photoId -> public raw URL. These URLs are what make the
+   * email photos tappable + zoomable at full quality on a phone.
+   * ============================================================ */
+  async function uploadPhotosToGitHub(data) {
+    const photos = data.photos || {};
+    const ids = Object.keys(photos).filter(id => photos[id]);
+    if (!ids.length) return {};
+    const slug = slugify(data.store);
+    const folder = `${CONFIG.PHOTOS_DIR}/${data.date}-${slug}`;
+    const rawBase = `https://raw.githubusercontent.com/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/${CONFIG.GITHUB_BRANCH}/` +
+      folder.split("/").map(encodeURIComponent).join("/");
+    const files = [];
+    const okIds = [];
+    for (const id of ids) {
+      const base64 = String(photos[id]).split(",")[1];
+      if (!base64) continue;
+      files.push({
+        repo: CONFIG.GITHUB_REPO,
+        path: `${folder}/${id}.jpg`,
+        contentBase64: base64,
+        message: `Monday Ops photos: ${data.store} ${data.date}`
+      });
+      okIds.push(id);
+    }
+    if (!files.length) return {};
+    await proxyUpload(files);
+    const photoUrls = {};
+    okIds.forEach(id => { photoUrls[id] = `${rawBase}/${encodeURIComponent(id)}.jpg`; });
+    return photoUrls;
+  }
+
+  async function pushSubmissionToGitHub(data) {
+    // The stored JSON carries photo URLs only — never base64 — so the
+    // submissions folder stays tiny and the repo never bloats.
+    const record = { ...data };
+    delete record.photos;
+    const filename = `${data.date}-${slugify(data.store)}.json`;
+    const path = `${CONFIG.SUBMISSIONS_DIR}/${filename}`;
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(record, null, 2))));
+    return proxyUpload([{
+      repo: CONFIG.GITHUB_REPO,
+      path,
+      contentBase64,
+      message: `Monday Ops checklist: ${data.store} ${data.date}`
+    }]);
+  }
+
+  /* ============================================================
+   * SUBMIT PIPELINE — photos → JSON → Zapier email. No downloads, ever.
+   * ============================================================ */
+  const OPS_CC_EMAIL = "jeffbilbrey@blufoxmobile.com";
+
+  function setOverlay(msg, sub) {
+    $("overlayMsg").textContent = msg;
+    $("overlaySub").textContent = sub || "";
+  }
+
+  async function submitAll() {
+    const f = document.forms.checklist;
+    $("errorBanner").classList.remove("show");
+
     const photos = {};
-    for (const [id, label] of Object.entries(REQUIRED_PHOTOS)) {
-      const v = $(id).dataset.value;
-      if (!v) missing.push(label);
-      else photos[id] = v;
-    }
-    if (missing.length) {
-      return showStatus("error", "Please upload these photos: " + missing.join(", ") + ".");
-    }
-    // Optional facilities-issue photos (only included if uploaded)
-    for (const id of Object.keys(OPTIONAL_PHOTOS)) {
+    for (const id of [...Object.keys(REQUIRED_PHOTOS), ...Object.keys(OPTIONAL_PHOTOS)]) {
       const v = $(id).dataset.value;
       if (v) photos[id] = v;
     }
@@ -865,207 +1182,50 @@
       asmEmail: $("asmEmail").value,
       date: $("date").value,
       answers: {
-        depositBags:    form.deposit.value,
-        pciChecklist:   form.pci.value,
-        scheduleWeeks:  form.schedules.value,
-        uniformsNeeded: form.uniforms.value,
-        cashFloat:      form.cashfloat.value,
-        returnsShipped: form.returns.value
+        depositBags:    f.deposit.value,
+        pciChecklist:   f.pci.value,
+        scheduleWeeks:  f.schedules.value,
+        uniformsNeeded: f.uniforms.value,
+        cashFloat:      f.cashfloat.value,
+        returnsShipped: f.returns.value
       },
       notes: $("notes").value,
       photos
     };
 
-    btn.disabled = true;
-    showStatus("loading", "Submitting…");
-
-    // Host each photo as a real .jpg in GitHub so the email can link to
-    // tappable, savable images. Best-effort: failures here must NOT block the
-    // submission JSON push or the Zapier webhook.
-    let photoUrls = {};
+    $("overlay").classList.add("show");
     try {
-      photoUrls = await uploadPhotosToGitHub(data);
-    } catch (hostErr) {
-      console.warn("Photo hosting failed (continuing without hosted URLs):", hostErr);
-      photoUrls = {};
-    }
-    data.photoUrls = photoUrls;
+      // 1. Host the photos (this is what makes them zoomable in the email)
+      setOverlay("Uploading your photos…", "High-quality copies for your DM to review.");
+      data.photoUrls = await uploadPhotosToGitHub(data);
 
-    try {
-      if (proxyConfigured()) {
-        await pushToGitHub(data);
-        showStatus("success", "✓ Checklist submitted successfully. You can close this page.");
-      } else {
-        downloadJSON(data);
-        showStatus("success", "✓ Upload proxy not configured. Checklist saved as a local JSON file — send it to your DM.");
-      }
-      notifyZapier(data).catch(e => console.warn("Zapier webhook failed:", e));
-      if (proxyConfigured()) resetForm();
+      // 2. Save the submission record
+      setOverlay("Saving your checklist…", "Almost there.");
+      await pushSubmissionToGitHub(data);
+
+      // 3. Fire the email
+      setOverlay("Sending the email…", "Notifying your DM.");
+      await notifyZapier(data);
+
+      $("overlay").classList.remove("show");
+      $("successTitle").textContent = data.name ? `Nice work, ${data.name.split(" ")[0]}! 🏆` : "Checklist submitted!";
+      go(SUCCESS_STEP);
+      launchConfetti();
     } catch (err) {
       console.error(err);
-      showStatus("error", "Upload failed: " + err.message + " — saved locally instead.");
-      downloadJSON(data);
-      notifyZapier(data).catch(e => console.warn("Zapier webhook failed:", e));
-    } finally {
-      btn.disabled = false;
+      $("overlay").classList.remove("show");
+      const banner = $("errorBanner");
+      banner.innerHTML = "⚠️ Something went wrong: " + escapeHtml(err.message) +
+        "<br>Your answers and photos are still here — check your connection and tap <b>Submit</b> again.";
+      banner.classList.add("show");
     }
-  });
-
-  function showStatus(type, msg) {
-    const s = $("status");
-    s.className = "status show " + type;
-    s.textContent = msg;
-  }
-
-  function resetForm() {
-    $("checklist").reset();
-    document.querySelectorAll(".file-preview").forEach(p => p.innerHTML = "");
-    document.querySelectorAll('input[type="file"]').forEach(i => { delete i.dataset.value; });
-    document.querySelectorAll(".yesno label.checked").forEach(l => l.classList.remove("checked"));
-    document.querySelectorAll(".conditional.show").forEach(c => c.classList.remove("show"));
-    $("date").value = fmtDateLocalISO(thisOrLastMonday(new Date()));
-  }
-
-  function downloadJSON(data) {
-    const filename = `${data.date}-${slugify(data.store) || "submission"}.json`;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function proxyConfigured() {
-    return !!PROXY_URL && PROXY_URL.indexOf('PASTE_') !== 0;
-  }
-
-  /* ---- WRITE TRANSPORT ------------------------------------------------
-     Every GitHub write goes through the Apps Script proxy. Payload contract
-     (must match github-upload-proxy.gs doPost):
-       { key: <upload key>, files: [{ repo, path, contentBase64, message }] }
-     The body is POSTed with Content-Type text/plain so the browser skips
-     the CORS preflight (Apps Script web apps don't answer OPTIONS); the
-     proxy parses e.postData.contents as JSON either way. fetch() follows
-     the script.google.com 302 redirect automatically. ------------------ */
-  function getUploadKey(forcePrompt) {
-    let key = localStorage.getItem(UPLOAD_KEY_STORAGE);
-    if (!key || forcePrompt) {
-      key = prompt('Enter the Blufox upload key (asked once per browser):');
-      if (key && key.trim()) {
-        key = key.trim();
-        localStorage.setItem(UPLOAD_KEY_STORAGE, key);
-      } else {
-        key = null;
-      }
-    }
-    return key;
-  }
-
-  function clearUploadKey() {
-    localStorage.removeItem(UPLOAD_KEY_STORAGE);
-  }
-
-  async function proxyPost(payload) {
-    if (!PROXY_URL || PROXY_URL.indexOf('PASTE_') === 0) {
-      throw new Error('Upload proxy not configured — deploy github-upload-proxy.gs and set PROXY_URL at the top of this page.');
-    }
-    const res = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
-    return await res.json();
-  }
-
-  // Collapse the proxy's per-repo / per-file results into one error string.
-  function proxyErrorText(resp) {
-    const errs = [];
-    (resp.results || []).forEach(r => {
-      if (Array.isArray(r.files) && r.files.length) {
-        r.files.forEach(f => { if (!f.ok) errs.push(r.repo + '/' + f.path + ' — ' + (f.error || 'failed')); });
-      } else if (!r.ok) {
-        errs.push(r.repo + ' — ' + (r.error || 'failed'));
-      }
-    });
-    return errs.length ? errs.join('; ') : (resp.error || 'Upload failed');
-  }
-
-  async function proxyUpload(files) {
-    let key = getUploadKey(false);
-    if (!key) throw new Error('Upload key required — reload and enter the key when prompted.');
-    let resp = await proxyPost({ key: key, files: files });
-    if (!resp.ok && /bad key|unauthorized/i.test(String(resp.error || ''))) {
-      // Stored key was wrong — clear it and re-prompt exactly once.
-      clearUploadKey();
-      key = getUploadKey(true);
-      if (!key) throw new Error('Upload key required');
-      resp = await proxyPost({ key: key, files: files });
-    }
-    if (!resp.ok) throw new Error(proxyErrorText(resp));
-    return resp;
-  }
-
-  async function pushToGitHub(data) {
-    const filename = `${data.date}-${slugify(data.store)}.json`;
-    const path = `${CONFIG.SUBMISSIONS_DIR}/${filename}`;
-    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-    return proxyUpload([{
-      repo: CONFIG.GITHUB_REPO,
-      path: path,
-      contentBase64: contentBase64,
-      message: `Monday Ops checklist: ${data.store} ${data.date}`
-    }]);
   }
 
   /* ============================================================
-   * PHOTO HOSTING
-   * Upload each submitted photo to the GitHub repo as a real .jpg file so
-   * the Zapier email can link to a tappable / savable image. All photos go
-   * up in ONE proxy call (one commit); the proxy's git-data flow handles
-   * create-vs-update automatically, so no sha juggling is needed.
-   * Best-effort: the caller already treats a failure here as non-blocking.
-   * Returns a map of photoId -> public raw.githubusercontent.com URL.
+   * ZAPIER — sends the prebuilt HTML email. Photos ride along as
+   * hosted URLs only (no base64), so the payload stays small and
+   * the email images open full-screen at full resolution.
    * ============================================================ */
-  async function uploadPhotosToGitHub(data) {
-    if (!proxyConfigured()) return {};
-    const photos = data.photos || {};
-    const ids = Object.keys(photos).filter(id => photos[id]);
-    if (!ids.length) return {};
-
-    const slug = slugify(data.store);
-    const folder = `${CONFIG.PHOTOS_DIR}/${data.date}-${slug}`;
-    // Encode each path segment for the raw URL (folder may contain the date +
-    // store slug; segments are already URL-safe but encode defensively).
-    const rawBase = `https://raw.githubusercontent.com/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/${CONFIG.GITHUB_BRANCH}/` +
-      folder.split("/").map(encodeURIComponent).join("/");
-
-    const files = [];
-    const okIds = [];
-    for (const id of ids) {
-      // Strip the "data:image/jpeg;base64," prefix to get raw base64 bytes.
-      const base64 = String(photos[id]).split(",")[1];
-      if (!base64) { console.warn("no base64 for", id); continue; }
-      files.push({
-        repo: CONFIG.GITHUB_REPO,
-        path: `${folder}/${id}.jpg`,
-        contentBase64: base64,
-        message: `Monday Ops photos: ${data.store} ${data.date}`
-      });
-      okIds.push(id);
-    }
-    if (!files.length) return {};
-
-    await proxyUpload(files);
-    const photoUrls = {};
-    okIds.forEach(id => { photoUrls[id] = `${rawBase}/${encodeURIComponent(id)}.jpg`; });
-    return photoUrls;
-  }
-
-  // Always-CC'd email for ops/leadership visibility.
-  const OPS_CC_EMAIL = "jeffbilbrey@blufoxmobile.com";
-
   async function notifyZapier(data) {
     if (!CONFIG.ZAPIER_WEBHOOK_URL) return;
     const ans = data.answers || {};
@@ -1073,70 +1233,19 @@
     const facilitiesPhotoCount = Object.keys(OPTIONAL_PHOTOS).filter(id => data.photos?.[id]).length;
     const hasNotes = !!(data.notes && data.notes.trim());
     const hasFacilitiesRequest = hasNotes || facilitiesPhotoCount > 0;
-
-    // Photos are passed inline as base64 data URLs — same pattern the DM Visit
-    // Guide Zap uses to embed photos in the HTML email. Order matters: required
-    // photos first so the email lays them out in a predictable sequence.
-    const photos = data.photos || {};
-    const photoBlock = {};
-    for (const k of Object.keys(REQUIRED_PHOTOS)) {
-      if (photos[k]) photoBlock[k] = photos[k];
-    }
-    for (const k of Object.keys(OPTIONAL_PHOTOS)) {
-      if (photos[k]) photoBlock[k] = photos[k];
-    }
-
-    // Hosted photo URLs (id -> public raw.githubusercontent.com URL). Built at
-    // submit time by uploadPhotosToGitHub; only successful uploads are present.
     const photoUrls = data.photoUrls || {};
 
-    // Recipient list for the Send Email step. Filter empties so Outlook doesn't
-    // reject the message because of a blank address.
     const toEmails = [data.email].filter(Boolean).join(", ");
     const ccEmails = [data.asmEmail, data.dmEmail, OPS_CC_EMAIL].filter(Boolean).join(", ");
 
-    // Prebuilt mobile-friendly HTML listing each hosted photo as a large,
-    // tappable block: a thumbnail linking to the full image plus an explicit
-    // "Open / save" text link. Required photos first, then optional. Only
-    // photos that were successfully hosted (have a URL) are included.
-    const photoLabelMap = { ...REQUIRED_PHOTOS, ...OPTIONAL_PHOTOS };
-    const orderedPhotoIds = [...Object.keys(REQUIRED_PHOTOS), ...Object.keys(OPTIONAL_PHOTOS)];
-    let photosHtml = "";
-    for (const id of orderedPhotoIds) {
-      const url = photoUrls[id];
-      if (!url) continue;
-      const label = photoLabelMap[id] || id;
-      photosHtml +=
-        `<div style="margin:0 0 16px">` +
-          `<div style="font-weight:600;margin-bottom:4px">${label}</div>` +
-          `<a href="${url}" target="_blank" rel="noopener">` +
-            `<img src="${url}" alt="${label}" style="max-width:280px;width:100%;border-radius:8px;border:1px solid #ccc">` +
-          `</a>` +
-          `<div style="margin-top:4px">` +
-            `<a href="${url}" target="_blank" rel="noopener" style="font-size:15px;font-weight:600">📷 Open / save full image →</a>` +
-          `</div>` +
-        `</div>`;
-    }
-
-    // ============================================================
-    // EMAIL BUILDERS (moved from the Zapier "Code by Zapier" step into the
-    // form so the Code step can be removed). These produce complete, polished,
-    // mobile-first HTML email documents using inline styles only. All dynamic
-    // text is HTML-escaped via the existing escapeHtml(). Photos are sent as
-    // real attachments by Zapier, so we only list which ones are attached.
-    // ============================================================
     const STORE = data.store || "";
     const DATE = data.date || "";
     const MANAGER = data.name || "";
     const NOTES = data.notes || "";
     const miss = missedItems.length;
 
-    // Convert plain-text notes into HTML-safe text that preserves line breaks.
-    function notesToHtml(s) {
-      return escapeHtml(s).replace(/\r\n|\r|\n/g, "<br>");
-    }
+    function notesToHtml(s) { return escapeHtml(s).replace(/\r\n|\r|\n/g, "<br>"); }
 
-    // A green "Yes" / red "No" status pill.
     function statusPill(val) {
       const yes = val === "Yes";
       const bg = yes ? "#dcfce7" : "#fee2e2";
@@ -1146,8 +1255,6 @@
         `background:${bg};color:${fg};font-weight:700;font-size:13px;white-space:nowrap">` +
         `${mark} ${escapeHtml(val || "—")}</span>`;
     }
-
-    // One row in the checklist list: label on the left, pill on the right.
     function checklistRow(label, val) {
       return `<tr>` +
         `<td style="padding:10px 0;border-bottom:1px solid #eee;font-size:15px;color:#1a1a1a">${escapeHtml(label)}</td>` +
@@ -1155,16 +1262,21 @@
         `</tr>`;
     }
 
-    // Which required photos are attached to THIS email (present in photoUrls).
-    const attachedRequiredLabels = Object.keys(REQUIRED_PHOTOS)
-      .filter(id => photoUrls[id])
-      .map(id => REQUIRED_PHOTOS[id]);
-    // Which facility photos are attached (present in photoUrls).
-    const attachedFacilityLabels = Object.keys(OPTIONAL_PHOTOS)
-      .filter(id => photoUrls[id])
-      .map(id => OPTIONAL_PHOTOS[id]);
+    // Big tappable photo blocks. The <a> wraps the full-width thumbnail AND
+    // an explicit button-style link — tapping either opens the full-resolution
+    // image in the browser where it can be pinch-zoomed with no pixelation.
+    function photoBlock(label, url) {
+      return `<div style="margin:0 0 18px">` +
+        `<div style="font-weight:700;font-size:14px;color:#1a1a1a;margin-bottom:6px">${escapeHtml(label)}</div>` +
+        `<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none">` +
+          `<img src="${url}" alt="${escapeHtml(label)}" width="440" style="display:block;width:100%;max-width:440px;border-radius:10px;border:1px solid #ddd">` +
+        `</a>` +
+        `<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:9px 16px;` +
+          `background:#ff5a1f;color:#ffffff;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none">` +
+          `&#128269; Tap to zoom / full screen</a>` +
+      `</div>`;
+    }
 
-    // Build the main notification email (full <html> document string).
     function buildEmailHtml() {
       const statusBg = miss > 0 ? "#fff7ed" : "#f0fdf4";
       const statusBorder = miss > 0 ? "#ff5a1f" : "#22c55e";
@@ -1173,11 +1285,8 @@
         : `&#9989; All checklist items complete`;
 
       let rows = "";
-      for (const [key, label] of Object.entries(ANSWER_LABELS)) {
-        rows += checklistRow(label, ans[key]);
-      }
+      for (const [key, label] of Object.entries(ANSWER_LABELS)) rows += checklistRow(label, ans[key]);
 
-      // Uniforms — informational, NOT a pass/fail item.
       const uniforms = ans.uniformsNeeded || "";
       let uniformsLine;
       if (uniforms === "Yes") {
@@ -1190,7 +1299,6 @@
           `<div style="font-weight:600;color:#1a1a1a;font-size:15px">Uniforms for new hires: ${escapeHtml(uniforms || "No")}</div>`;
       }
 
-      // Needs-attention section (only when there are misses).
       let attentionBlock = "";
       if (miss > 0) {
         const items = missedItems.map(k =>
@@ -1203,7 +1311,6 @@
           `</div>`;
       }
 
-      // Facilities / Ops notes section (only when notes present).
       let notesBlock = "";
       if (NOTES && NOTES.trim()) {
         notesBlock =
@@ -1213,28 +1320,16 @@
           `</div>`;
       }
 
-      // Photos section: a labeled, mobile-friendly tappable block per required
-      // photo that was successfully hosted (thumbnail + explicit text link).
-      // Only rendered when at least one required photo has a hosted URL.
-      let photosNote = "";
       let photoBlocks = "";
       for (const id of Object.keys(REQUIRED_PHOTOS)) {
-        const url = photoUrls[id];
-        if (!url) continue;
-        const label = REQUIRED_PHOTOS[id];
-        photoBlocks +=
-          `<div style="margin:0 0 14px">` +
-            `<div style="font-weight:600;font-size:14px;color:#1a1a1a;margin-bottom:4px">${escapeHtml(label)}</div>` +
-            `<a href="${url}" target="_blank" rel="noopener">` +
-              `<img src="${url}" alt="${escapeHtml(label)}" style="display:block;max-width:100%;width:260px;border-radius:8px;border:1px solid #ccc">` +
-            `</a>` +
-            `<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:15px;font-weight:600;color:#ff5a1f">&#128247; Open / save full photo &rarr;</a>` +
-          `</div>`;
+        if (photoUrls[id]) photoBlocks += photoBlock(REQUIRED_PHOTOS[id], photoUrls[id]);
       }
+      let photosNote = "";
       if (photoBlocks) {
         photosNote =
-          `<div style="margin:20px 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
-            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:12px">Photos</div>` +
+          `<div style="margin:20px 0 0;padding:16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:15px;margin-bottom:4px">&#128248; Photos</div>` +
+            `<div style="font-size:12.5px;color:#888;margin-bottom:14px">Tap any photo to open it full screen at full resolution &mdash; pinch to zoom to verify schedules.</div>` +
             `${photoBlocks}` +
           `</div>`;
       }
@@ -1270,7 +1365,6 @@
         `</div></body></html>`;
     }
 
-    // Build the facilities-focused email (only meaningful when there's a request).
     function buildFacilitiesEmailHtml() {
       if (!hasFacilitiesRequest) return "";
       let notesBlock = "";
@@ -1281,33 +1375,19 @@
             `<div style="font-size:14px;color:#333;line-height:1.5">${notesToHtml(NOTES)}</div>` +
           `</div>`;
       }
-      // Facilities photos section: labeled tappable block per hosted facility
-      // photo (thumbnail + explicit text link). Labels: "Facilities Photo 1..4".
       const FACILITY_EMAIL_LABELS = {
-        facility1: "Facilities Photo 1",
-        facility2: "Facilities Photo 2",
-        facility3: "Facilities Photo 3",
-        facility4: "Facilities Photo 4"
+        facility1: "Facilities Photo 1", facility2: "Facilities Photo 2",
+        facility3: "Facilities Photo 3", facility4: "Facilities Photo 4"
       };
-      let photosNote = "";
       let photoBlocks = "";
       for (const id of Object.keys(FACILITY_EMAIL_LABELS)) {
-        const url = photoUrls[id];
-        if (!url) continue;
-        const label = FACILITY_EMAIL_LABELS[id];
-        photoBlocks +=
-          `<div style="margin:0 0 14px">` +
-            `<div style="font-weight:600;font-size:14px;color:#1a1a1a;margin-bottom:4px">${escapeHtml(label)}</div>` +
-            `<a href="${url}" target="_blank" rel="noopener">` +
-              `<img src="${url}" alt="${escapeHtml(label)}" style="display:block;max-width:100%;width:260px;border-radius:8px;border:1px solid #ccc">` +
-            `</a>` +
-            `<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:15px;font-weight:600;color:#ff5a1f">&#128247; Open / save full photo &rarr;</a>` +
-          `</div>`;
+        if (photoUrls[id]) photoBlocks += photoBlock(FACILITY_EMAIL_LABELS[id], photoUrls[id]);
       }
+      let photosNote = "";
       if (photoBlocks) {
         photosNote =
-          `<div style="margin:0 0 0;padding:14px 16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
-            `<div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:12px">Photos</div>` +
+          `<div style="padding:16px;background:#fafafa;border:1px solid #eee;border-radius:8px">` +
+            `<div style="font-weight:700;color:#1a1a1a;font-size:15px;margin-bottom:12px">&#128248; Photos</div>` +
             `${photoBlocks}` +
           `</div>`;
       }
@@ -1322,10 +1402,7 @@
               `<div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:4px">${escapeHtml(STORE)}</div>` +
               `<div style="color:#fca5a5;font-size:14px;margin-top:4px">${escapeHtml(DATE)} &nbsp;&bull;&nbsp; Submitted by ${escapeHtml(MANAGER)}</div>` +
             `</div>` +
-            `<div style="padding:24px">` +
-              `${notesBlock}` +
-              `${photosNote}` +
-            `</div>` +
+            `<div style="padding:24px">${notesBlock}${photosNote}</div>` +
             `<div style="padding:16px 24px;background:#fafafa;border-top:1px solid #eee;text-align:center;color:#999;font-size:12px">` +
               `Blufox Mobile &mdash; Monday Ops` +
             `</div>` +
@@ -1339,9 +1416,6 @@
     const facilitiesSubject = `🚨 Facilities Issue Report — ${STORE} (${DATE})`;
     const facilitiesEmailHtml = buildFacilitiesEmailHtml();
 
-    // Zapier's Catch Hook flattens nested objects, so we ALSO send a single
-    // JSON-stringified copy of the full payload. The Code step parses it back
-    // into a normal object and avoids any guesswork about Zapier's flattening.
     const payload = {
       submittedAt: data.submittedAt,
       date: data.date,
@@ -1353,35 +1427,24 @@
       asmEmail: data.asmEmail,
       notes: data.notes,
       answers: ans,
-      // Top-level flat answer fields so they're also pickable in Zapier UI:
       depositBags:    ans.depositBags    || "",
       pciChecklist:   ans.pciChecklist   || "",
       scheduleWeeks:  ans.scheduleWeeks  || "",
       cashFloat:      ans.cashFloat      || "",
       returnsShipped: ans.returnsShipped || "",
+      uniformsNeeded: ans.uniformsNeeded || "",
       facilitiesPhotoCount,
-      // Convenience fields for the Zap's Send Email step
       toEmails,
       ccEmails,
       opsEmail: OPS_CC_EMAIL,
-      // Fully-built emails (the form now does what the "Code by Zapier" step did).
-      // The Zap's Send Email step can use these directly.
       subject,
       emailHtml,
       facilitiesNeeded,
       facilitiesSubject,
       facilitiesEmailHtml,
-      // Uniforms answer (informational; NOT a pass/fail / missed item).
-      uniformsNeeded: ans.uniformsNeeded || "",
-      // Human-friendly labels keyed by answer id so the email template can
-      // iterate without re-hardcoding strings.
       answerLabels: ANSWER_LABELS,
       photoLabels: { ...REQUIRED_PHOTOS, ...OPTIONAL_PHOTOS },
-      // Inline photos (base64 data URLs). Mirrors the DM Visit Guide pattern.
-      photos: photoBlock,
-      // Hosted photo URLs (id -> raw.githubusercontent.com URL) + prebuilt HTML.
       photoUrls,
-      photosHtml,
       flags: {
         hasMisses: missedItems.length > 0,
         missCount: missedItems.length,
@@ -1392,25 +1455,8 @@
         hasFacilitiesPhotos: facilitiesPhotoCount > 0
       }
     };
-    // Also flatten photo data into top-level fields so Zapier's Catch Hook
-    // exposes them as simple pickable fields (e.g. "Photos Brinks", "Photos Week1")
-    // rather than burying them inside a nested object. The Code step reads
-    // these individually because Zapier auto-parses anything containing JSON.
-    const ph = payload.photos || {};
-    payload.photoBrinks     = ph.brinks    || "";
-    payload.photoWeek1      = ph.week1     || "";
-    payload.photoWeek2      = ph.week2     || "";
-    payload.photoWeek3      = ph.week3     || "";
-    payload.photoWeek4      = ph.week4     || "";
-    payload.photoUpgrades   = ph.upgrades  || "";
-    payload.photoTradeins   = ph.tradeins  || "";
-    payload.photoFacility1  = ph.facility1 || "";
-    payload.photoFacility2  = ph.facility2 || "";
-    payload.photoFacility3  = ph.facility3 || "";
-    payload.photoFacility4  = ph.facility4 || "";
-    // Flattened hosted-URL fields for easy Zapier picking. Empty string if the
-    // photo wasn't uploaded or hosting failed for that one.
-    const pu = payload.photoUrls || {};
+    // Flat hosted-URL fields for easy picking in the Zapier UI.
+    const pu = photoUrls;
     payload.photoBrinksUrl    = pu.brinks    || "";
     payload.photoWeek1Url     = pu.week1     || "";
     payload.photoWeek2Url     = pu.week2     || "";
@@ -1422,20 +1468,9 @@
     payload.photoFacility2Url = pu.facility2 || "";
     payload.photoFacility3Url = pu.facility3 || "";
     payload.photoFacility4Url = pu.facility4 || "";
-    // Also flatten missedItemsHuman so the email template can grab it directly.
     payload.missedItems = payload.flags?.missedItemsHuman || [];
-    // NOTE: previously included `payloadJson: JSON.stringify(payload)` here, but
-    // Zapier's Catch Hook auto-parses fields whose name contains "Json", which
-    // mangled the value into a JS-object-literal string that JSON.parse couldn't
-    // read on the Code step's side. We now rely on flat fields instead.
 
-    // CORS gotcha: hooks.zapier.com doesn't return Access-Control-Allow-Origin
-    // headers, so a normal `application/json` POST triggers a preflight that
-    // fails with "TypeError: Failed to fetch". Workaround: use mode "no-cors"
-    // with a "simple" content type ("text/plain") to skip preflight entirely.
-    // Zapier parses the body as JSON regardless of the Content-Type header.
-    // The response becomes opaque (we can't read status), so we rely on the
-    // request resolving without throwing as our signal of success.
+    // no-cors POST (hooks.zapier.com sends no CORS headers; text/plain skips preflight)
     await fetch(CONFIG.ZAPIER_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -1444,7 +1479,45 @@
     });
   }
 
+  /* ============================================================
+   * CONFETTI 🎉
+   * ============================================================ */
+  function launchConfetti() {
+    const canvas = $("confetti");
+    const ctx = canvas.getContext("2d");
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    const colors = ["#ff5a1f", "#ff8a50", "#16a34a", "#facc15", "#3b82f6", "#ec4899"];
+    const pieces = Array.from({ length: 160 }, () => ({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.5,
+      w: 7 + Math.random() * 7,
+      h: 10 + Math.random() * 8,
+      c: colors[(Math.random() * colors.length) | 0],
+      vy: 2.2 + Math.random() * 3.2,
+      vx: -1.5 + Math.random() * 3,
+      rot: Math.random() * Math.PI,
+      vr: -0.12 + Math.random() * 0.24
+    }));
+    let frames = 0;
+    (function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (++frames < 260) requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    })();
+  }
+
+  /* ---------- boot ---------- */
   loadDirectory();
+  go(0);
 </script>
 </body>
 </html>
