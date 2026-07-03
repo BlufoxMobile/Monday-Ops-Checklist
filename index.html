@@ -93,11 +93,40 @@
 
   /* ---------- Step cards ---------- */
   .step { display: none; }
-  .step.active { display: block; animation: stepIn 0.4s cubic-bezier(.22,1,.36,1); }
+  .step.active { display: block; animation: stepIn 0.45s cubic-bezier(.22,1,.36,1); }
+  .step.active.from-back { animation: stepInBack 0.45s cubic-bezier(.22,1,.36,1); }
   @keyframes stepIn {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateX(34px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes stepInBack {
+    from { opacity: 0; transform: translateX(-34px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  /* Staggered entrance for everything inside the card */
+  .step.active .card > * { opacity: 0; animation: rise 0.5s cubic-bezier(.22,1,.36,1) forwards; }
+  .step.active .card > *:nth-child(1) { animation-delay: 0.05s; }
+  .step.active .card > *:nth-child(2) { animation-delay: 0.12s; }
+  .step.active .card > *:nth-child(3) { animation-delay: 0.19s; }
+  .step.active .card > *:nth-child(4) { animation-delay: 0.26s; }
+  .step.active .card > *:nth-child(5) { animation-delay: 0.33s; }
+  .step.active .card > *:nth-child(6) { animation-delay: 0.40s; }
+  .step.active .card > *:nth-child(7) { animation-delay: 0.47s; }
+  .step.active .card > *:nth-child(8) { animation-delay: 0.54s; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  /* Answer pick bounce */
+  .yesno label.checked { animation: pickPop 0.28s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pickPop {
+    0% { transform: scale(0.94); }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  /* Photo added pop */
+  .photo-slot.filled .file-drop { animation: pickPop 0.32s cubic-bezier(.34,1.56,.64,1); }
+  .file-preview img { animation: rise 0.35s cubic-bezier(.22,1,.36,1); }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -319,25 +348,6 @@
     color: var(--danger); font-size: 14px; font-weight: 600; display: none;
   }
   .error-banner.show { display: block; }
-
-  /* ---------- Key modal ---------- */
-  .key-modal {
-    position: fixed; inset: 0; background: rgba(17,24,39,0.45);
-    display: none; align-items: center; justify-content: center; z-index: 60; padding: 20px;
-  }
-  .key-modal.show { display: flex; }
-  .key-modal .kbox {
-    background: #fff; border-radius: 18px; padding: 26px 22px; max-width: 380px; width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25); text-align: center;
-  }
-  .key-modal h3 { margin: 0 0 8px; font-size: 18px; }
-  .key-modal p { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
-  .key-modal input {
-    width: 100%; padding: 13px 14px; border: 1.5px solid var(--border); border-radius: 12px;
-    font-size: 16px; text-align: center; font-family: inherit;
-  }
-  .key-modal input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(255,90,31,0.12); }
-  .key-modal .btn { margin-top: 14px; width: 100%; }
 
   canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
 
@@ -656,15 +666,6 @@
   </div>
 </div>
 
-<div class="key-modal" id="keyModal">
-  <div class="kbox">
-    <h3>🔑 One-time setup</h3>
-    <p>Enter the Blufox upload key. You only do this once on this device — ask your DM if you don't have it.</p>
-    <input type="password" id="keyInput" placeholder="Upload key" autocomplete="off">
-    <button type="button" class="btn next" id="keySave">Save &amp; continue</button>
-  </div>
-</div>
-
 <canvas id="confetti"></canvas>
 
 <script>
@@ -868,9 +869,13 @@
   }
 
   function go(i) {
+    const goingBack = i < current;
     current = i;
     maxVisited = Math.max(maxVisited, i);
-    steps.forEach((s, k) => s.classList.toggle("active", k === i));
+    steps.forEach((s, k) => {
+      s.classList.toggle("from-back", k === i && goingBack);
+      s.classList.toggle("active", k === i);
+    });
     dots.forEach((d, k) => {
       d.classList.toggle("active", k === i);
       d.classList.toggle("done", k < i || (k <= maxVisited && k !== i && stepHint(k) === ""));
@@ -1048,34 +1053,17 @@
   }
 
   /* ============================================================
-   * UPLOAD KEY (styled modal instead of prompt())
+   * UPLOAD KEY — embedded (XOR-encoded with the shared "blufox" key, same
+   * scheme as the other Blufox pages) so managers never see a setup prompt.
+   * To rotate: regenerate _KEY_ENCODED with:
+   *   const t='NEW_KEY'; const k='blufox';
+   *   JSON.stringify([...t].map((c,i)=>c.charCodeAt(0)^k.charCodeAt(i%k.length)))
    * ============================================================ */
-  let keyResolver = null;
-  function askKey() {
-    return new Promise(resolve => {
-      keyResolver = resolve;
-      $("keyInput").value = "";
-      $("keyModal").classList.add("show");
-      setTimeout(() => $("keyInput").focus(), 50);
-    });
-  }
-  $("keySave").addEventListener("click", () => {
-    const v = $("keyInput").value.trim();
-    if (!v) return;
-    $("keyModal").classList.remove("show");
-    keyResolver?.(v);
-  });
-  $("keyInput").addEventListener("keydown", e => { if (e.key === "Enter") $("keySave").click(); });
+  const _KEY_ENCODED = [83,92,66,53,0,13,22,4,37,7,29,19,32,0,3,2,78];
+  const _KEY_K = 'blufox';
+  const EMBEDDED_UPLOAD_KEY = _KEY_ENCODED.map((c,i)=>String.fromCharCode(c ^ _KEY_K.charCodeAt(i % _KEY_K.length))).join('');
 
-  async function getUploadKey(forcePrompt) {
-    let key = localStorage.getItem(UPLOAD_KEY_STORAGE);
-    if (!key || forcePrompt) {
-      key = await askKey();
-      if (key) localStorage.setItem(UPLOAD_KEY_STORAGE, key);
-    }
-    return key;
-  }
-  function clearUploadKey() { localStorage.removeItem(UPLOAD_KEY_STORAGE); }
+  async function getUploadKey() { return EMBEDDED_UPLOAD_KEY; }
 
   /* ============================================================
    * PROXY TRANSPORT
@@ -1103,15 +1091,8 @@
   }
 
   async function proxyUpload(files) {
-    let key = await getUploadKey(false);
-    if (!key) throw new Error('Upload key required.');
-    let resp = await proxyPost({ key, files });
-    if (!resp.ok && /bad key|unauthorized/i.test(String(resp.error || ''))) {
-      clearUploadKey();
-      key = await getUploadKey(true);
-      if (!key) throw new Error('Upload key required');
-      resp = await proxyPost({ key, files });
-    }
+    const key = await getUploadKey();
+    const resp = await proxyPost({ key, files });
     if (!resp.ok) throw new Error(proxyErrorText(resp));
     return resp;
   }
